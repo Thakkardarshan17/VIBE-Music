@@ -18,6 +18,21 @@ import meRoutes from './routes/meRoutes.js';
 
 const app = express();
 
+// Serverless warm-up middleware for Vercel
+let dbReady = false;
+app.use(async (req, res, next) => {
+  if (!dbReady && process.env.VERCEL) {
+    try {
+      await initDatabaseConnection();
+      await seedDatabase();
+      dbReady = true;
+    } catch (e) {
+      console.warn('Serverless DB init warning:', e);
+    }
+  }
+  next();
+});
+
 // Trust reverse proxy headers (Crucial for Vercel, Railway, Render, Cloudflare, Nginx)
 app.set('trust proxy', 1);
 
@@ -89,8 +104,9 @@ async function startServer() {
 }
 
 const isTestEnv = process.env.NODE_ENV === 'test' || process.argv.some((a) => a.includes('test'));
+const isVercel = !!process.env.VERCEL;
 
-if (!isTestEnv) {
+if (!isTestEnv && !isVercel) {
   startServer().catch((err) => {
     console.error('Fatal error starting VIBE MUSIC Server:', err);
   });
