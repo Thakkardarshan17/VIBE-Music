@@ -1,0 +1,23 @@
+{
+  "name": "vibe-music",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VIBE MUSIC - Complete Full-Stack Music Streaming Web Application",
+  "scripts": {
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"magenta,cyan\" \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "cd server && npm run build",
+    "build:client": "cd client && npm run build",
+    "start": "cd server && npm start",
+    "test": "cd server && npx tsx src/test/integration.test.ts",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "prisma:generate": "cd server && npx prisma generate",
+    "prisma:push": "cd server && npx prisma db push"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.5",
+    "playwright": "^1.65.1"
+  }
+}

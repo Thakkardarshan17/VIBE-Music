@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <!-- Background Circle Radial Gradient -->
+    <radialGradient id="favBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1E0D33"/>
+      <stop offset="85%" stop-color="#090510"/>
+      <stop offset="100%" stop-color="#05020A"/>
+    </radialGradient>
+    <!-- Neon Brand Gradient -->
+    <linearGradient id="favGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A020F0"/>
+      <stop offset="50%" stop-color="#C026D3"/>
+      <stop offset="100%" stop-color="#E51D87"/>
+    </linearGradient>
+    <!-- Audio Wave Gradient -->
+    <linearGradient id="favWave" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F472B6"/>
+    </linearGradient>
+    <!-- Apex Pulse -->
+    <linearGradient id="favPulse" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E51D87"/>
+      <stop offset="100%" stop-color="#FF3399"/>
+    </linearGradient>
+    <!-- Glow Filter -->
+    <filter id="favGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- High-Tech Dark Rounded Shield Background -->
+  <rect width="64" height="64" rx="18" fill="url(#favBg)"/>
+  <rect width="64" height="64" rx="18" stroke="url(#favGrad)" stroke-width="1.5" stroke-opacity="0.5"/>
+
+  <!-- Iconic V Acoustic Wings -->
+  <path d="M12 14C12 12.34 13.34 11 15 11H20.5C21.7 11 22.76 11.77 23.12 12.91L32 37.8L40.88 12.91C41.24 11.77 42.3 11 43.5 11H49C50.66 11 52 12.34 52 14C52 14.54 51.85 15.06 51.58 15.5L34.5 42C33.4 43.7 30.6 43.7 29.5 42L12.42 15.5C12.15 15.06 12 14.54 12 14Z" 
+        fill="url(#favGrad)" 
+        filter="url(#favGlow)"/>
+
+  <!-- Frequency Equalizer Soundwave Bars -->
+  <rect x="21" y="16" width="3" height="11" rx="1.5" fill="url(#favWave)" opacity="0.95"/>
+  <rect x="26.5" y="20" width="3" height="15" rx="1.5" fill="url(#favWave)" opacity="0.95"/>
+  <rect x="32" y="22" width="3" height="13" rx="1.5" fill="url(#favWave)" opacity="0.95"/>
+  <rect x="37.5" y="17" width="3" height="10" rx="1.5" fill="url(#favWave)" opacity="0.95"/>
+
+  <!-- Pulsing Audio Apex Node -->
+  <circle cx="32" cy="51" r="3.5" fill="url(#favPulse)"/>
+  <circle cx="32" cy="51" r="1.5" fill="#FFFFFF"/>
+</svg>
+

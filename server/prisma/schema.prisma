@@ -1,0 +1,226 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id               String             @id @default(uuid())
+  email            String             @unique
+  fullName         String?
+  mobileNumber     String?
+  passwordHash     String?
+  googleId         String?            @unique
+  emailVerified    Boolean            @default(false)
+  username         String             @unique
+  role             Role               @default(USER)
+  avatarUrl        String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  profile          UserProfile?
+  playlists        Playlist[]
+  favorites        Favorite[]
+  listeningHistory ListeningHistory[]
+  searchHistory    SearchHistory[]
+  settings         UserSettings?
+  sessions         Session[]
+
+  @@map("users")
+}
+
+model Session {
+  id               String    @id @default(uuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@map("sessions")
+}
+
+model VerificationCode {
+  id         String    @id @default(uuid())
+  email      String
+  code       String
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@map("verification_codes")
+}
+
+model PasswordResetToken {
+  id         String    @id @default(uuid())
+  email      String
+  token      String
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+model UserProfile {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio            String?
+  location       String?
+  favoriteGenres String?   // JSON or comma separated string
+  website        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("user_profiles")
+}
+
+model Song {
+  id              String            @id @default(uuid())
+  title           String
+  artist          String
+  album           String?
+  duration        Int               @default(0) // in seconds
+  coverUrl        String?
+  audioUrl        String?           // Direct audio stream or preview
+  provider        String            // jamendo, youtube, spotify, itunes
+  providerId      String            // External provider ID
+  isAuthorized    Boolean           @default(true)
+  playCount       Int               @default(0)
+  createdAt       DateTime          @default(now())
+
+  playlistTracks  PlaylistTrack[]
+  favorites       Favorite[]
+  listeningHistory ListeningHistory[]
+
+  @@unique([provider, providerId])
+  @@map("songs")
+}
+
+model Artist {
+  id               String    @id @default(uuid())
+  name             String    @unique
+  imageUrl         String?
+  bio              String?
+  genre            String?
+  verified         Boolean   @default(false)
+  monthlyListeners Int       @default(0)
+  createdAt        DateTime  @default(now())
+
+  @@map("artists")
+}
+
+model Album {
+  id          String    @id @default(uuid())
+  title       String
+  artist      String
+  coverUrl    String?
+  releaseDate String?
+  totalTracks Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  @@map("albums")
+}
+
+model Playlist {
+  id          String          @id @default(uuid())
+  title       String
+  description String?
+  coverUrl    String?
+  isPublic    Boolean         @default(true)
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  tracks      PlaylistTrack[]
+
+  @@map("playlists")
+}
+
+model PlaylistTrack {
+  id         String   @id @default(uuid())
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  songId     String
+  song       Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  orderIndex Int      @default(0)
+  addedAt    DateTime @default(now())
+
+  @@unique([playlistId, songId])
+  @@map("playlist_tracks")
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  songId    String
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, songId])
+  @@map("favorites")
+}
+
+model ListeningHistory {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  songId         String
+  song           Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  playedAt       DateTime @default(now())
+  durationPlayed Int      @default(0)
+
+  @@map("listening_history")
+}
+
+model SearchHistory {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  query       String
+  provider    String   @default("all")
+  resultCount Int      @default(0)
+  searchedAt  DateTime @default(now())
+
+  @@map("search_history")
+}
+
+model UserSettings {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme                String   @default("dark")
+  audioQuality         String   @default("high")
+  volume               Int      @default(80)
+  autoplay             Boolean  @default(true)
+  notificationsEnabled Boolean  @default(true)
+  updatedAt            DateTime @updatedAt
+
+  @@map("user_settings")
+}
+
+model MusicProvider {
+  id            String   @id @default(uuid())
+  name          String   @unique // 'jamendo', 'youtube', 'spotify', 'itunes'
+  isEnabled     Boolean  @default(true)
+  apiEndpoint   String
+  authType      String   // 'none', 'api_key', 'oauth2'
+  status        String   @default("active") // 'active', 'degraded', 'offline'
+  totalRequests Int      @default(0)
+  lastChecked   DateTime @default(now())
+
+  @@map("music_providers")
+}
+
