@@ -134,23 +134,7 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
       redirectUri
     )}&response_type=token&scope=email%20profile%20openid&prompt=select_account`;
 
-    // On mobile devices, direct redirect to Google is 100% reliable and prevents popup blockers
-    if (isMobile) {
-      window.location.href = oauthUrl;
-      return;
-    }
-
-    // On desktop, use Google Token Client popup if initialized
-    if (tokenClientRef.current) {
-      try {
-        tokenClientRef.current.requestAccessToken({ prompt: 'select_account' });
-        return;
-      } catch (e) {
-        console.warn('Token client request failed, falling back to direct Google redirect:', e);
-      }
-    }
-
-    // Fallback: If tokenClient not yet ready or popup blocked, redirect directly to Google accounts
+    // Direct Google OAuth 2.0 full-page redirect flow (100% reliable across all devices, mobile & desktop)
     window.location.href = oauthUrl;
   };
 

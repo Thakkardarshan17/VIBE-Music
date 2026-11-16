@@ -6,7 +6,8 @@ import path from 'path';
 export const prisma = new PrismaClient();
 
 // In-Memory / File Persistent Fallback Store for zero-setup execution if PostgreSQL is offline
-const DATA_DIR = path.join(process.cwd(), 'data');
+const isVercel = !!process.env.VERCEL;
+const DATA_DIR = isVercel ? path.join('/tmp', 'data') : path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'vibemusic_db.json');
 
 interface LocalDatabaseState {
