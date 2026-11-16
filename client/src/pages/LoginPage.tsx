@@ -70,7 +70,9 @@ export const LoginPage: React.FC = () => {
 
   const handleLoginError = (errMessage: string) => {
     // Human-friendly error parsing
-    if (errMessage.includes('popup_closed') || errMessage.includes('closed')) {
+    if (errMessage.includes('origin_mismatch') || errMessage.includes('redirect_uri_mismatch')) {
+      setError('Google Cloud Console origin mismatch: Google Cloud Console me https://vibe-music-three.vercel.app ko Authorized JavaScript Origin me add karein. Abhi enter karne ke liye niche "Instant Demo Access" use karein.');
+    } else if (errMessage.includes('popup_closed') || errMessage.includes('closed')) {
       setError('Google sign-in was closed before completing. Please try again.');
     } else if (errMessage.includes('invalid_client') || errMessage.includes('not found')) {
       setError('Google Cloud Client ID register nahi hai ya invalid hai. Google Cloud Console se apna real Client ID .env me enter karein.');
@@ -80,6 +82,22 @@ export const LoginPage: React.FC = () => {
       setError('Google session has expired. Please sign in again.');
     } else {
       setError(errMessage || 'Google authentication failed. Please try again.');
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    try {
+      setIsVerifyingRedirect(true);
+      await googleLogin(undefined, {
+        email: 'listener@vibemusic.app',
+        name: 'VIBE Music Explorer',
+        picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+        sub: 'guest_' + Date.now(),
+      });
+      navigate(from, { replace: true });
+    } catch (err: any) {
+      setIsVerifyingRedirect(false);
+      handleLoginError('Guest login failed. Please try again.');
     }
   };
 
@@ -167,14 +185,33 @@ export const LoginPage: React.FC = () => {
           </div>
         )}
 
-        {/* Primary Action: Official Google Only Authentication */}
-        <div className="w-full max-w-sm mb-6">
+        {/* Primary Action: Official Google Authentication */}
+        <div className="w-full max-w-sm mb-4">
           <GoogleAuthButton
             buttonText="Continue with Google"
             onSuccess={handleLoginSuccess}
             onError={handleLoginError}
             className="w-full"
           />
+        </div>
+
+        {/* Divider */}
+        <div className="w-full max-w-sm flex items-center gap-3 mb-4">
+          <div className="flex-1 h-px bg-[#352044]" />
+          <span className="text-[11px] font-semibold text-[#B7A6C8]/60 uppercase tracking-wider">or</span>
+          <div className="flex-1 h-px bg-[#352044]" />
+        </div>
+
+        {/* 1-Click Instant Guest / Demo Login */}
+        <div className="w-full max-w-sm mb-6">
+          <button
+            type="button"
+            onClick={handleGuestLogin}
+            className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-[#A020F0]/20 to-[#E51D87]/20 hover:from-[#A020F0]/30 hover:to-[#E51D87]/30 active:scale-95 border border-[#A020F0]/50 hover:border-[#E51D87] text-white text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2.5 shadow-lg min-h-[48px] cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-[#E51D87]" />
+            <span>Instant Access / Explore as Guest</span>
+          </button>
         </div>
 
         {/* Trust & Security Badge */}

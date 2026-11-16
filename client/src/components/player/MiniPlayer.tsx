@@ -114,10 +114,10 @@ export const MiniPlayer: React.FC = () => {
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="fixed bottom-[56px] lg:bottom-0 left-0 right-0 z-40 bg-[#12091D]/95 backdrop-blur-xl border-t border-[#352044] px-3 md:px-6 py-2 md:py-2.5 transition-all shadow-[0_-8px_30px_rgba(0,0,0,0.8)] select-none">
-      {/* Top Touch Scrub Line */}
+    <div className="fixed bottom-[calc(62px+env(safe-area-inset-bottom,0px))] lg:bottom-0 left-2.5 right-2.5 lg:left-0 lg:right-0 z-40 rounded-2xl lg:rounded-none bg-[#150a22]/95 lg:bg-[#12091D]/95 backdrop-blur-2xl border border-[#352044] px-2.5 sm:px-4 md:px-6 py-2 md:py-2.5 transition-all shadow-[0_10px_35px_rgba(0,0,0,0.85)] select-none">
+      {/* Top Touch Scrub Line with Rounded Corners on Mobile */}
       <div
-        className="absolute top-0 left-0 right-0 h-1.5 md:h-1 bg-[#090510] cursor-pointer group hover:h-2 transition-all"
+        className="absolute top-0 left-0 right-0 h-1 bg-[#090510] rounded-t-2xl lg:rounded-none overflow-hidden cursor-pointer group hover:h-1.5 transition-all"
         onClick={(e) => {
           const rect = e.currentTarget.getBoundingClientRect();
           const clickPos = (e.clientX - rect.left) / rect.width;
@@ -128,23 +128,23 @@ export const MiniPlayer: React.FC = () => {
           className="h-full bg-gradient-to-r from-[#A020F0] to-[#E51D87] relative transition-all"
           style={{ width: `${progressPercentage}%` }}
         >
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 md:gap-4 mt-0.5">
-        {/* Left: Thumbnail, Track Info & Like */}
-        <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1 sm:flex-none sm:min-w-[200px] sm:max-w-[280px]">
-          <div
-            onClick={() => setIsFullScreenOpen(true)}
-            className="relative group w-11 h-11 sm:w-14 sm:h-14 min-w-[44px] min-h-[44px] sm:min-w-[56px] sm:min-h-[56px] max-w-[56px] max-h-[56px] rounded-xl overflow-hidden flex-shrink-0 cursor-pointer shadow-md border border-[#352044] bg-[#090510]"
-          >
+        {/* Left: Thumbnail & Track Info - Tapping opens full player */}
+        <div
+          onClick={() => setIsFullScreenOpen(true)}
+          className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1 cursor-pointer"
+        >
+          <div className="relative group w-11 h-11 sm:w-14 sm:h-14 min-w-[44px] min-h-[44px] sm:min-w-[56px] sm:min-h-[56px] max-w-[56px] max-h-[56px] rounded-xl overflow-hidden flex-shrink-0 shadow-md border border-[#352044] bg-[#090510]">
             <AlbumArtwork
               src={currentTrack.coverUrl}
               alt={currentTrack.title}
               aspectRatio="square"
               rounded="rounded-xl"
-              className="w-full h-full"
+              className="w-full h-full object-cover"
               imgClassName={isPlaying ? 'ring-2 ring-[#A020F0]' : ''}
             />
             <div className="absolute inset-0 z-20 bg-black/40 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -152,11 +152,13 @@ export const MiniPlayer: React.FC = () => {
             </div>
           </div>
 
-          <div className="min-w-0 flex-1 overflow-hidden" onClick={() => setIsFullScreenOpen(true)}>
-            <h4 className="font-bold text-xs sm:text-sm text-white truncate cursor-pointer hover:text-purple-300 transition-colors leading-tight">
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <h4 className="font-bold text-xs sm:text-sm text-white truncate hover:text-purple-300 transition-colors leading-tight">
               {currentTrack.title}
             </h4>
-            <p className="text-[11px] sm:text-xs text-[#B7A6C8] truncate mt-0.5">{currentTrack.artist}</p>
+            <p className="text-[11px] sm:text-xs text-[#B7A6C8] truncate mt-0.5 font-medium">
+              {currentTrack.artist}
+            </p>
             <div className="hidden sm:flex items-center gap-1.5 mt-0.5">
               <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-emerald-950/90 border border-emerald-500/40 text-emerald-400 whitespace-nowrap shrink-0">
                 FULL SONG
@@ -169,9 +171,10 @@ export const MiniPlayer: React.FC = () => {
             </div>
           </div>
 
+          {/* Desktop Like Button */}
           <button
             onClick={handleLikeToggle}
-            className="p-1.5 text-[#B7A6C8] hover:text-[#E51D87] transition-colors flex-shrink-0 block min-h-[36px]"
+            className="hidden sm:block p-1.5 text-[#B7A6C8] hover:text-[#E51D87] transition-colors flex-shrink-0 min-h-[36px]"
             title={isLiked ? 'Unlike' : 'Like'}
           >
             <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${isLiked ? 'fill-[#E51D87] text-[#E51D87]' : ''}`} />
@@ -244,38 +247,30 @@ export const MiniPlayer: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile Right Controls (< sm) */}
-        <div className="flex sm:hidden items-center gap-1.5">
-          {/* Mobile Video Toggle */}
+        {/* Mobile Right Controls: Like, Play/Pause, Next */}
+        <div className="flex sm:hidden items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
-            onClick={toggleVideoVisible}
-            className={`p-2 rounded-lg border transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${
-              isVideoVisible
-                ? 'bg-[#A020F0]/40 text-purple-300 border-[#A020F0]'
-                : 'text-[#B7A6C8] border-transparent hover:text-white'
-            }`}
-            title={isVideoVisible ? 'Hide Music Video' : 'Watch Music Video'}
+            onClick={handleLikeToggle}
+            className="p-2 text-[#B7A6C8] hover:text-[#E51D87] active:scale-90 transition-all min-h-[40px] min-w-[40px] flex items-center justify-center"
+            title={isLiked ? 'Unlike' : 'Like'}
           >
-            <Tv className="w-4 h-4" />
+            <Heart className={`w-4 h-4 ${isLiked ? 'fill-[#E51D87] text-[#E51D87]' : ''}`} />
           </button>
 
           <button
             onClick={togglePlay}
-            className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#A020F0] to-[#E51D87] text-white flex items-center justify-center shadow-lg active:scale-95 min-h-[44px] min-w-[44px]"
+            className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#A020F0] to-[#E51D87] text-white flex items-center justify-center shadow-lg shadow-[#A020F0]/40 active:scale-90 transition-transform flex-shrink-0"
+            title={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
           </button>
 
-          <button onClick={nextTrack} className="p-2 text-slate-300 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center">
-            <SkipForward className="w-5 h-5" />
-          </button>
-
           <button
-            onClick={() => setIsFullScreenOpen(true)}
-            className="p-2 text-[#B7A6C8] hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
-            title="Expand Full Screen"
+            onClick={nextTrack}
+            className="p-2 text-slate-300 hover:text-white active:scale-90 transition-all min-h-[40px] min-w-[40px] flex items-center justify-center"
+            title="Next Track"
           >
-            <Maximize2 className="w-4 h-4" />
+            <SkipForward className="w-5 h-5" />
           </button>
         </div>
 

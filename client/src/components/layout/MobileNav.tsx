@@ -14,7 +14,7 @@ export const MobileNav: React.FC = () => {
     }`;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 h-14 bg-[#090510]/95 backdrop-blur-xl border-t border-[#352044] lg:hidden flex items-center justify-around px-2 shadow-2xl pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 h-[calc(56px+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)] bg-[#090510]/95 backdrop-blur-xl border-t border-[#352044] lg:hidden flex items-center justify-around px-2 shadow-2xl">
       <NavLink to="/" className={navItemClass}>
         <Home className="w-4 h-4" /> {t('home')}
       </NavLink>

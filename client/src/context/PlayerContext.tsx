@@ -266,8 +266,46 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Record listening history in background
     historyApi.logPlay(track, 0).catch(() => {});
 
-    // Full Track Playback Router
-    // Case 1: Already has YouTube ID
+    // Full Track Playback Router: INSTANT PLAYBACK
+    // Priority 1: Direct Audio Stream (iTunes Master / Jamendo / MP3) -> Plays in 50ms instantly!
+    if (track.audioUrl) {
+      setActivePlaybackMode('audio');
+      setYoutubeVideoId(null);
+      if (audioRef.current) {
+        audioRef.current.src = track.audioUrl;
+        audioRef.current.load();
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => setIsPlaying(true))
+            .catch((err) => {
+              console.warn('Direct audio play error:', err);
+              // Fallback to youtube video stream if audio stream is blocked
+              if (track.youtubeId) {
+                setActivePlaybackMode('youtube');
+                setYoutubeVideoId(track.youtubeId);
+              }
+            });
+        }
+      }
+      setIsPlaying(true);
+      setDuration(track.duration || 180);
+
+      // In background, pre-fetch YouTube video ID for video mode
+      if (!track.youtubeId) {
+        musicApi
+          .resolveFullTrack(track.title, track.artist)
+          .then((res) => {
+            if (res && res.youtubeId) {
+              track.youtubeId = res.youtubeId;
+            }
+          })
+          .catch(() => {});
+      }
+      return;
+    }
+
+    // Priority 2: Already has YouTube ID
     if (track.youtubeId) {
       setActivePlaybackMode('youtube');
       setYoutubeVideoId(track.youtubeId);
@@ -280,7 +318,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    // Case 2: YouTube Provider track
+    // Priority 3: YouTube Provider track
     if (track.provider === 'youtube') {
       const vid = track.id.replace('youtube-', '');
       track.youtubeId = vid;
@@ -295,20 +333,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    // Case 3: Jamendo Full MP3
-    if (track.provider === 'jamendo' && track.audioUrl) {
-      setActivePlaybackMode('audio');
-      setYoutubeVideoId(null);
-      if (audioRef.current) {
-        audioRef.current.src = track.audioUrl;
-        audioRef.current.load();
-        audioRef.current.play().then(() => setIsPlaying(true)).catch(console.warn);
-      }
-      setDuration(track.duration || 210);
-      return;
-    }
-
-    // Case 4: Any other song (e.g. iTunes preview) -> Auto-resolve to Full Song YouTube stream
+    // Priority 4: Any track without audioUrl -> Resolve and stream
     setActivePlaybackMode('youtube');
     setDuration(track.duration && track.duration > 35 ? track.duration : 240);
     setIsPlaying(true);

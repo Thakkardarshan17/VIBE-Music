@@ -127,6 +127,16 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
   const triggerGoogleOAuth = () => {
     setLoading(true);
 
+    // Prefer official GIS token client popup (seamless, no page redirect)
+    if (tokenClientRef.current) {
+      try {
+        tokenClientRef.current.requestAccessToken({ prompt: 'select_account' });
+        return;
+      } catch (err) {
+        console.warn('GIS requestAccessToken error, using redirect fallback:', err);
+      }
+    }
+
     const redirectUri = `${window.location.origin}/login`;
     const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
       activeClientId
@@ -134,7 +144,7 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
       redirectUri
     )}&response_type=token&scope=email%20profile%20openid&prompt=select_account`;
 
-    // Direct Google OAuth 2.0 full-page redirect flow (100% reliable across all devices, mobile & desktop)
+    // Direct Google OAuth 2.0 full-page redirect flow fallback
     window.location.href = oauthUrl;
   };
 
