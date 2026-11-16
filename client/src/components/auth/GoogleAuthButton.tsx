@@ -52,7 +52,8 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
                 await googleLogin(response.credential);
                 onSuccess?.();
               } catch (err: any) {
-                onError?.(err.response?.data?.error || 'Google authentication failed.');
+                const msg = err?.message || err?.response?.data?.error || 'Google authentication failed. Please try again.';
+                onError?.(msg);
               } finally {
                 if (mounted) setLoading(false);
               }
@@ -70,13 +71,20 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
             prompt: 'select_account',
             error_callback: (err: any) => {
               if (mounted) setLoading(false);
-              onError?.(err?.message || 'Google OAuth Client ID error. Please verify the Client ID.');
+              // Don't show error for popup_closed — user simply cancelled
+              if (err?.type === 'popup_closed' || err?.type === 'popup_failed_to_open') {
+                return;
+              }
+              onError?.(err?.message || 'Google OAuth error. Please try again.');
             },
             callback: async (tokenResponse: any) => {
               if (tokenResponse.error) {
-                if (tokenResponse.error !== 'popup_closed_by_user') {
-                  onError?.(tokenResponse.error_description || tokenResponse.error || 'Google sign-in was cancelled.');
+                if (tokenResponse.error === 'popup_closed_by_user' || tokenResponse.error === 'access_denied') {
+                  // User closed popup — silently reset, don't show error
+                  if (mounted) setLoading(false);
+                  return;
                 }
+                onError?.(tokenResponse.error_description || tokenResponse.error || 'Google sign-in was cancelled.');
                 if (mounted) setLoading(false);
                 return;
               }
@@ -87,7 +95,8 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
                   await googleLogin(tokenResponse.access_token);
                   onSuccess?.();
                 } catch (err: any) {
-                  onError?.(err.response?.data?.error || 'Google identity verification failed.');
+                  const msg = err?.message || err?.response?.data?.error || 'Google verification failed. Please try again.';
+                  onError?.(msg);
                 } finally {
                   if (mounted) setLoading(false);
                 }

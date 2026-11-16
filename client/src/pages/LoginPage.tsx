@@ -58,7 +58,7 @@ export const LoginPage: React.FC = () => {
           .catch((err) => {
             setIsVerifyingRedirect(false);
             window.history.replaceState(null, '', window.location.pathname);
-            handleLoginError(err.response?.data?.error || err.message || 'Google OAuth verification failed');
+            handleLoginError(err?.message || err?.response?.data?.error || 'Google OAuth verification failed');
           });
       }
     }
@@ -71,15 +71,19 @@ export const LoginPage: React.FC = () => {
   const handleLoginError = (errMessage: string) => {
     // Human-friendly error parsing
     if (errMessage.includes('origin_mismatch') || errMessage.includes('redirect_uri_mismatch')) {
-      setError('Google Cloud Console origin mismatch: Google Cloud Console me https://vibe-music-three.vercel.app ko Authorized JavaScript Origin me add karein. Abhi enter karne ke liye niche "Instant Demo Access" use karein.');
-    } else if (errMessage.includes('popup_closed') || errMessage.includes('closed')) {
-      setError('Google sign-in was closed before completing. Please try again.');
+      setError('Google Cloud Console origin mismatch. Niche "Instant Access / Explore as Guest" use karein.');
+    } else if (errMessage.includes('popup_closed') || errMessage.includes('closed before completing')) {
+      setError('Google sign-in window band ho gaya. Phir se try karein ya "Instant Access" use karein.');
     } else if (errMessage.includes('invalid_client') || errMessage.includes('not found')) {
-      setError('Google Cloud Client ID register nahi hai ya invalid hai. Google Cloud Console se apna real Client ID .env me enter karein.');
-    } else if (errMessage.includes('network') || errMessage.includes('Network')) {
-      setError('Network connection error. Please check your internet connection.');
+      setError('Google Client ID invalid hai. "Instant Access / Explore as Guest" se login karein.');
+    } else if (errMessage.includes('network') || errMessage.includes('Network') || errMessage.includes('timeout')) {
+      setError('Network connection error. Internet check karein aur phir se try karein.');
     } else if (errMessage.includes('expired') || errMessage.includes('Invalid')) {
-      setError('Google session has expired. Please sign in again.');
+      setError('Google session expired. Phir se sign in karein.');
+    } else if (errMessage.includes('405')) {
+      setError('Server temporarily unavailable. "Instant Access / Explore as Guest" se login karein.');
+    } else if (errMessage.includes('verification failed')) {
+      setError('Google verification fail hua. Phir se try karein ya "Instant Access" use karein.');
     } else {
       setError(errMessage || 'Google authentication failed. Please try again.');
     }

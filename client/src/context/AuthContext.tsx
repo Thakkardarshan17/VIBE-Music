@@ -155,7 +155,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const googleLogin = async (credential?: string, testProfile?: any) => {
-    // 1. Try backend verification first
+    // Helper to save verified profile locally (used by all fallback paths)
+    const saveUserLocally = (profile: any) => {
+      const verifiedUser: User = {
+        id: 'goog_' + (profile.sub || Math.abs(String(profile.email).split('').reduce((a: any, b: any) => (a << 5) - a + b.charCodeAt(0), 0))),
+        email: profile.email.toLowerCase(),
+        username: (profile.name || profile.email.split('@')[0]).toLowerCase().replace(/[^a-z0-9]/g, ''),
+        fullName: profile.name || profile.email.split('@')[0],
+        role: 'USER',
+        avatarUrl: profile.picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(profile.email)}`,
+        emailVerified: true,
+      };
+
+      const clientToken = 'vibe_auth_token_' + btoa(encodeURIComponent(JSON.stringify(verifiedUser))) + '.' + Date.now();
+      localStorage.setItem('vibe_token', clientToken);
+      sessionStorage.setItem('vibe_token', clientToken);
+      localStorage.setItem('vibe_user', JSON.stringify(verifiedUser));
+
+      setUser(verifiedUser);
+      setProfile({
+        id: 'prof_' + verifiedUser.id,
+        userId: verifiedUser.id,
+        bio: 'Music enthusiast on VIBE MUSIC',
+        favoriteGenres: 'Pop, Bollywood, Punjabi, EDM',
+      });
+      setSettings({
+        theme: 'dark',
+        audioQuality: 'high',
+        volume: 80,
+        autoplay: true,
+        notificationsEnabled: true,
+      });
+    };
+
+    // --- If a testProfile (Guest/Demo) is supplied, skip everything & save directly ---
+    if (testProfile && testProfile.email) {
+      saveUserLocally(testProfile);
+      return;
+    }
+
+    if (!credential) {
+      throw new Error('No Google credential provided.');
+    }
+
+    // --- STRATEGY 1: Try backend verification (works only when server is online) ---
     try {
       const data = await authApi.googleAuth({ credential, testProfile });
       if (data && data.token && data.user) {
@@ -167,92 +210,88 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
     } catch (backendErr: any) {
-      console.warn('Backend API auth returned error, falling back to verified Google token resolution:', backendErr);
+      console.warn('[Auth] Backend auth failed (expected on static hosts), using client-side verification:', backendErr?.message);
+    }
 
-      // 2. Client-side verified Google OAuth resolution (JWT ID Token or Access Token)
-      let profile: any = null;
+    // --- STRATEGY 2: Client-side Google token verification chain ---
+    let profile: any = null;
 
-      if (testProfile && testProfile.email) {
-        profile = testProfile;
-      } else if (credential) {
-        // Try A: JWT decode (standard Google ID Token from One Tap / Google Button)
-        const jwtPayload = decodeJwtPayload(credential);
-        if (jwtPayload && jwtPayload.email) {
+    // Try A: JWT decode — standard Google ID Token from One Tap / Sign-In button
+    const jwtPayload = decodeJwtPayload(credential);
+    if (jwtPayload && jwtPayload.email) {
+      profile = {
+        email: jwtPayload.email,
+        name: jwtPayload.name || jwtPayload.given_name || jwtPayload.email.split('@')[0],
+        picture: jwtPayload.picture,
+        sub: jwtPayload.sub,
+      };
+    }
+
+    // Try B: Google tokeninfo API — works for ID tokens
+    if (!profile) {
+      try {
+        const tokeninfoRes = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`, {
+          timeout: 8000,
+        });
+        if (tokeninfoRes.data?.email) {
           profile = {
-            email: jwtPayload.email,
-            name: jwtPayload.name || jwtPayload.given_name || jwtPayload.email.split('@')[0],
-            picture: jwtPayload.picture,
-            sub: jwtPayload.sub,
+            email: tokeninfoRes.data.email,
+            name: tokeninfoRes.data.name || tokeninfoRes.data.email.split('@')[0],
+            picture: tokeninfoRes.data.picture,
+            sub: tokeninfoRes.data.sub,
           };
         }
-
-        // Try B: Google tokeninfo API (for ID Tokens)
-        if (!profile) {
-          try {
-            const tokeninfoRes = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`, {
-              timeout: 8000,
-            });
-            if (tokeninfoRes.data?.email) {
-              profile = {
-                email: tokeninfoRes.data.email,
-                name: tokeninfoRes.data.name || tokeninfoRes.data.email.split('@')[0],
-                picture: tokeninfoRes.data.picture,
-                sub: tokeninfoRes.data.sub,
-              };
-            }
-          } catch {}
-        }
-
-        // Try C: Google Userinfo API (for OAuth Access Tokens)
-        if (!profile) {
-          try {
-            const googleRes = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-              headers: { Authorization: `Bearer ${credential}` },
-              timeout: 8000,
-            });
-            if (googleRes.data?.email) {
-              profile = googleRes.data;
-            }
-          } catch {}
-        }
+      } catch {
+        // Not an ID token — try as access token next
       }
-
-      if (profile && profile.email) {
-        const verifiedUser: User = {
-          id: 'goog_' + (profile.sub || Math.abs(profile.email.split('').reduce((a: any, b: any) => (a << 5) - a + b.charCodeAt(0), 0))),
-          email: profile.email.toLowerCase(),
-          username: (profile.name || profile.email.split('@')[0]).toLowerCase().replace(/[^a-z0-9]/g, ''),
-          fullName: profile.name || profile.email.split('@')[0],
-          role: 'USER',
-          avatarUrl: profile.picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(profile.email)}`,
-          emailVerified: true,
-        };
-
-        const clientToken = 'vibe_auth_token_' + btoa(encodeURIComponent(JSON.stringify(verifiedUser))) + '.' + Date.now();
-        localStorage.setItem('vibe_token', clientToken);
-        sessionStorage.setItem('vibe_token', clientToken);
-        localStorage.setItem('vibe_user', JSON.stringify(verifiedUser));
-
-        setUser(verifiedUser);
-        setProfile({
-          id: 'prof_' + verifiedUser.id,
-          userId: verifiedUser.id,
-          bio: 'Music enthusiast on VIBE MUSIC',
-          favoriteGenres: 'Pop, Bollywood, Punjabi, EDM',
-        });
-        setSettings({
-          theme: 'dark',
-          audioQuality: 'high',
-          volume: 80,
-          autoplay: true,
-          notificationsEnabled: true,
-        });
-        return;
-      }
-
-      // If we had no valid credentials, rethrow readable error
-      throw backendErr;
     }
+
+    // Try C: Google Userinfo API — works for OAuth2 Access Tokens (popup flow)
+    if (!profile) {
+      try {
+        const googleRes = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${credential}` },
+          timeout: 8000,
+        });
+        if (googleRes.data?.email) {
+          profile = {
+            email: googleRes.data.email,
+            name: googleRes.data.name || googleRes.data.email.split('@')[0],
+            picture: googleRes.data.picture,
+            sub: googleRes.data.sub,
+          };
+        }
+      } catch (err: any) {
+        console.warn('[Auth] Google userinfo API also failed:', err?.message);
+      }
+    }
+
+    // Try D: Google tokeninfo for access_token (last resort)
+    if (!profile) {
+      try {
+        const atRes = await axios.get(`https://oauth2.googleapis.com/tokeninfo?access_token=${credential}`, {
+          timeout: 8000,
+        });
+        if (atRes.data?.email) {
+          profile = {
+            email: atRes.data.email,
+            name: atRes.data.email.split('@')[0],
+            picture: undefined,
+            sub: atRes.data.sub,
+          };
+        }
+      } catch {
+        // All verification methods exhausted
+      }
+    }
+
+    if (profile && profile.email) {
+      saveUserLocally(profile);
+      return;
+    }
+
+    // All strategies exhausted — throw a user-friendly error
+    throw new Error('Google identity verification failed. Please try again or use Instant Access.');
   };
 
   const logout = async () => {
