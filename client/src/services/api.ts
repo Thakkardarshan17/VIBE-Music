@@ -120,41 +120,6 @@ export interface SearchAllResult {
   trendingFallback?: Track[];
 }
 
-export const searchApi = {
-  async getSuggestions(query: string) {
-    const res = await apiClient.get<LiveSuggestionsResult>('/search/suggestions', {
-      params: { q: query },
-    });
-    return res.data;
-  },
-  async searchAll(query: string, type: string = 'all') {
-    const res = await apiClient.get<SearchAllResult>('/search', {
-      params: { q: query, type },
-    });
-    return res.data;
-  },
-  async getTrending() {
-    const res = await apiClient.get<{
-      trendingQueries: string[];
-      popularSongs: Track[];
-      recommendedArtists: Artist[];
-    }>('/search/trending');
-    return res.data;
-  },
-  async getHistory() {
-    const res = await apiClient.get<{ history: string[] }>('/search/history');
-    return res.data.history;
-  },
-  async saveHistory(query: string) {
-    const res = await apiClient.post<{ success: boolean }>('/search/history', { query });
-    return res.data;
-  },
-  async clearHistory() {
-    const res = await apiClient.delete<{ success: boolean }>('/search/history');
-    return res.data;
-  },
-};
-
 // Default Fallback Catalogs (Ensures 100% crash-free experience on static hosts & Vercel)
 export const DEFAULT_ARTISTS: Artist[] = [
   { id: 'art-1', name: 'Arijit Singh', genre: 'Bollywood, Romantic', imageUrl: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=500&q=80', verified: true, monthlyListeners: 42500000 },
@@ -274,6 +239,115 @@ export const DEFAULT_TRACKS: Track[] = [
     releaseDate: '2019-02-22',
   },
 ];
+
+export const searchApi = {
+  async getSuggestions(query: string): Promise<LiveSuggestionsResult> {
+    try {
+      const res = await apiClient.get<LiveSuggestionsResult>('/search/suggestions', {
+        params: { q: query },
+      });
+      if (res.data && res.data.suggestions && typeof res.data.total === 'number') {
+        return res.data;
+      }
+    } catch {}
+    const q = (query || '').toLowerCase().trim();
+    const matchedSongs = DEFAULT_TRACKS.filter(
+      (t) => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
+    );
+    const matchedArtists = DEFAULT_ARTISTS.filter(
+      (a) => a.name.toLowerCase().includes(q) || (a.genre && a.genre.toLowerCase().includes(q))
+    );
+    const matchedAlbums = DEFAULT_ALBUMS.filter(
+      (al) => al.title.toLowerCase().includes(q) || al.artist.toLowerCase().includes(q)
+    );
+    return {
+      query,
+      suggestions: {
+        artists: matchedArtists.slice(0, 4),
+        songs: matchedSongs.slice(0, 6),
+        albums: matchedAlbums.slice(0, 3),
+        playlists: [],
+        genres: [
+          { id: 'bolly', name: 'Bollywood', description: 'Hindi Cinema' },
+          { id: 'punj', name: 'Punjabi', description: 'Punjabi Pop & Hip Hop' },
+          { id: 'guj', name: 'Gujarati', description: 'Folk & Garba' },
+        ].filter((g) => g.name.toLowerCase().includes(q)),
+      },
+      total: matchedSongs.length + matchedArtists.length + matchedAlbums.length,
+    };
+  },
+  async searchAll(query: string, type: string = 'all'): Promise<SearchAllResult> {
+    try {
+      const res = await apiClient.get<SearchAllResult>('/search', {
+        params: { q: query, type },
+      });
+      if (res.data && Array.isArray(res.data.songs)) {
+        return res.data;
+      }
+    } catch {}
+    const q = (query || '').toLowerCase().trim();
+    const matchedSongs = DEFAULT_TRACKS.filter(
+      (t) => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
+    );
+    const matchedArtists = DEFAULT_ARTISTS.filter(
+      (a) => a.name.toLowerCase().includes(q) || (a.genre && a.genre.toLowerCase().includes(q))
+    );
+    const matchedAlbums = DEFAULT_ALBUMS.filter(
+      (al) => al.title.toLowerCase().includes(q) || al.artist.toLowerCase().includes(q)
+    );
+    return {
+      query,
+      type,
+      total: matchedSongs.length + matchedArtists.length + matchedAlbums.length,
+      songs: matchedSongs.length > 0 ? matchedSongs : DEFAULT_TRACKS,
+      artists: matchedArtists.length > 0 ? matchedArtists : DEFAULT_ARTISTS,
+      albums: matchedAlbums.length > 0 ? matchedAlbums : DEFAULT_ALBUMS,
+      playlists: [],
+      trendingFallback: DEFAULT_TRACKS,
+    };
+  },
+  async getTrending() {
+    try {
+      const res = await apiClient.get<{
+        trendingQueries: string[];
+        popularSongs: Track[];
+        recommendedArtists: Artist[];
+      }>('/search/trending');
+      if (res.data && Array.isArray(res.data.trendingQueries)) return res.data;
+    } catch {}
+    return {
+      trendingQueries: ['Arijit Singh', 'Shubh', 'Diljit Dosanjh', 'Kesariya', 'King', 'Bollywood 2026', 'Garba Hits'],
+      popularSongs: DEFAULT_TRACKS,
+      recommendedArtists: DEFAULT_ARTISTS,
+    };
+  },
+  async getHistory(): Promise<string[]> {
+    try {
+      const saved = localStorage.getItem('vibe_search_history');
+      if (saved) return JSON.parse(saved);
+      const res = await apiClient.get<{ history: string[] }>('/search/history');
+      if (res.data && Array.isArray(res.data.history)) return res.data.history;
+    } catch {}
+    return ['Kesariya', 'Shubh', 'Diljit Dosanjh', 'Arijit Singh'];
+  },
+  async saveHistory(query: string) {
+    try {
+      const current = localStorage.getItem('vibe_search_history');
+      const list: string[] = current ? JSON.parse(current) : [];
+      const updated = [query, ...list.filter((x) => x !== query)].slice(0, 20);
+      localStorage.setItem('vibe_search_history', JSON.stringify(updated));
+      await apiClient.post<{ success: boolean }>('/search/history', { query });
+    } catch {}
+    return { success: true };
+  },
+  async clearHistory() {
+    try {
+      localStorage.removeItem('vibe_search_history');
+      await apiClient.delete<{ success: boolean }>('/search/history');
+    } catch {}
+    return { success: true };
+  },
+};
 
 // Music Endpoints
 export const musicApi = {

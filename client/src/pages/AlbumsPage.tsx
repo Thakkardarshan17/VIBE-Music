@@ -38,7 +38,7 @@ export const AlbumsPage: React.FC = () => {
     setLoadingTracks(true);
     try {
       const searchRes = await musicApi.search(album.title);
-      setAlbumTracks(searchRes.tracks || []);
+      setAlbumTracks(searchRes?.tracks && searchRes.tracks.length > 0 ? searchRes.tracks : []);
     } catch (e) {
       console.warn(e);
       setAlbumTracks([]);

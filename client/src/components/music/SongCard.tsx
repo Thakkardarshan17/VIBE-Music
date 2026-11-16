@@ -14,6 +14,8 @@ interface SongCardProps {
 }
 
 export const SongCard: React.FC<SongCardProps> = ({ track, queueContext, onAddToPlaylist }) => {
+  if (!track || !track.id) return null;
+
   const { currentTrack, isPlaying, playTrack, togglePlay } = usePlayer();
   const { isAuthenticated } = useAuth();
   const [isLiked, setIsLiked] = useState<boolean>(() => localMusicStorage.isSongLiked(track.id));

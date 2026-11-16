@@ -9,6 +9,7 @@ interface AlbumCardProps {
 }
 
 export const AlbumCard: React.FC<AlbumCardProps> = ({ album, onClick }) => {
+  if (!album || !album.title) return null;
   return (
     <div
       onClick={onClick}

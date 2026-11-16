@@ -62,6 +62,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   });
   const [commandFeedback, setCommandFeedback] = useState<string>('');
   const [statusMessage, setStatusMessage] = useState<string>('Tap to Speak');
+  const [fallbackQuery, setFallbackQuery] = useState<string>('');
 
   const recognitionRef = useRef<any>(null);
   const autoCloseTimerRef = useRef<any>(null);
@@ -213,20 +214,37 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
     return false;
   };
 
-  // Start speech recognition
-  const startListening = (langCode: string = selectedLang) => {
+  // Start speech recognition with permission check
+  const startListening = async (langCode: string = selectedLang) => {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
+    // Explicitly request microphone stream if available
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((t) => t.stop());
+      } catch (err: any) {
+        console.warn('Microphone permission check warning:', err);
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setStatus('denied');
+          setStatusMessage('Microphone permission denied. Please allow microphone in your browser address bar.');
+          return;
+        }
+      }
+    }
+
     if (!SpeechRecognition) {
       setStatus('unsupported');
-      setStatusMessage('Voice search is not supported in this browser');
+      setStatusMessage('Voice recognition is not supported in this browser. You can type below:');
       return;
     }
 
     try {
       if (recognitionRef.current) {
-        recognitionRef.current.abort();
+        try {
+          recognitionRef.current.abort();
+        } catch {}
       }
 
       const recognition = new SpeechRecognition();
@@ -273,18 +291,17 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
         console.warn('Speech recognition error:', event.error);
         if (event.error === 'not-allowed') {
           setStatus('denied');
-          setStatusMessage('Microphone permission denied');
+          setStatusMessage('Microphone permission denied. Tap the mic icon in your browser address bar to allow.');
         } else if (event.error === 'no-speech') {
           setStatus('no-speech');
-          setStatusMessage('No voice detected. Please try speaking again');
+          setStatusMessage('No voice detected. Tap to try again');
         } else {
           setStatus('error');
-          setStatusMessage(`Speech error (${event.error || 'unknown'})`);
+          setStatusMessage(`Speech error (${event.error || 'network'}). Tap to retry`);
         }
       };
 
       recognition.onend = () => {
-        // If still listening without final, mark no-speech
         setStatus((prev) => (prev === 'listening' || prev === 'recognizing' ? 'no-speech' : prev));
       };
 
@@ -293,7 +310,7 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
     } catch (err: any) {
       console.warn('Failed to start speech recognition:', err);
       setStatus('error');
-      setStatusMessage('Could not start microphone');
+      setStatusMessage('Microphone busy or not accessible. Tap to retry');
     }
   };
 
@@ -523,6 +540,33 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
             </button>
           )}
         </div>
+
+        {/* Fallback Direct Input when voice is denied, unsupported or no-speech */}
+        {(status === 'unsupported' || status === 'denied' || status === 'error' || status === 'no-speech') && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (fallbackQuery.trim()) {
+                handleFinalSpeech(fallbackQuery.trim());
+              }
+            }}
+            className="relative z-10 w-full mt-3 flex items-center gap-2 max-w-sm"
+          >
+            <input
+              type="text"
+              value={fallbackQuery}
+              onChange={(e) => setFallbackQuery(e.target.value)}
+              placeholder="Or type song or artist name..."
+              className="flex-1 bg-[#090510] rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-400 border border-[#352044] focus:border-[#A020F0] outline-none"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#A020F0] to-[#E51D87] text-white text-xs font-bold shadow-md hover:brightness-110 active:scale-95 transition-all flex-shrink-0"
+            >
+              Search
+            </button>
+          </form>
+        )}
 
         {/* Helpful Spoken Examples & Commands */}
         <div className="relative z-10 w-full mt-5 pt-4 border-t border-[#352044]/60">

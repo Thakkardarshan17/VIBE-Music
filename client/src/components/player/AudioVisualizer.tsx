@@ -4,9 +4,14 @@ import { usePlayer } from '../../context/PlayerContext.js';
 interface AudioVisualizerProps {
   height?: number;
   barCount?: number;
+  className?: string;
 }
 
-export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ height = 48, barCount = 28 }) => {
+export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
+  height = 48,
+  barCount = 28,
+  className = '',
+}) => {
   const { isPlaying, analyserNode } = usePlayer();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -73,7 +78,7 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ height = 48, b
       ref={canvasRef}
       width={barCount * 8}
       height={height}
-      className="w-full max-w-[260px] h-10 opacity-90 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]"
+      className={`w-full max-w-full h-10 opacity-90 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)] ${className}`}
     />
   );
 };

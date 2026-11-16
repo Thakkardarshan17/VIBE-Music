@@ -55,6 +55,8 @@ export const SongRow: React.FC<SongRowProps> = ({
   onAddToPlaylist,
   onRemove,
 }) => {
+  if (!track || !track.id) return null;
+
   const { currentTrack, isPlaying, playTrack, togglePlay } = usePlayer();
   const { isAuthenticated } = useAuth();
   const [isLiked, setIsLiked] = useState<boolean>(() => localMusicStorage.isSongLiked(track.id));

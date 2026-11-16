@@ -395,16 +395,22 @@ export const LiveSearchAutocomplete: React.FC<LiveSearchAutocompleteProps> = ({
           )}
 
           {/* STATE 3: Categorized Suggestions List (100% Solid Cards) */}
-          {query.trim().length >= 2 && !loading && totalCount > 0 && (
+          {query.trim().length >= 2 && !loading && totalCount > 0 && (() => {
+            const artistList = suggestions?.artists || [];
+            const songList = suggestions?.songs || [];
+            const albumList = suggestions?.albums || [];
+            const genreList = suggestions?.genres || [];
+
+            return (
             <div className="p-2 sm:p-3 space-y-3.5" style={{ backgroundColor: '#12091D' }}>
               {/* Category: Artists */}
-              {suggestions.artists.length > 0 && (
+              {artistList.length > 0 && (
                 <div>
                   <div className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-[#A020F0] flex items-center gap-1.5 mb-1">
                     <User className="w-3 h-3" /> Artists
                   </div>
                   <div className="space-y-1.5">
-                    {suggestions.artists.map((artist) => (
+                    {artistList.map((artist) => (
                       <div
                         key={artist.id}
                         onClick={() => handleSelectArtist(artist)}
@@ -435,13 +441,13 @@ export const LiveSearchAutocomplete: React.FC<LiveSearchAutocompleteProps> = ({
               )}
 
               {/* Category: Songs */}
-              {suggestions.songs.length > 0 && (
+              {songList.length > 0 && (
                 <div>
                   <div className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-[#E51D87] flex items-center gap-1.5 mb-1">
                     <Disc3 className="w-3 h-3" /> Songs
                   </div>
                   <div className="space-y-1.5">
-                    {suggestions.songs.map((song) => {
+                    {songList.map((song) => {
                       const isCurrent = currentTrack?.id === song.id;
                       return (
                         <div
@@ -499,13 +505,13 @@ export const LiveSearchAutocomplete: React.FC<LiveSearchAutocompleteProps> = ({
               )}
 
               {/* Category: Albums */}
-              {suggestions.albums.length > 0 && (
+              {albumList.length > 0 && (
                 <div>
                   <div className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-pink-400 flex items-center gap-1.5 mb-1">
                     <Disc className="w-3 h-3" /> Albums
                   </div>
                   <div className="space-y-1.5">
-                    {suggestions.albums.map((album) => (
+                    {albumList.map((album) => (
                       <div
                         key={album.id}
                         onClick={() => handleSelectAlbum(album)}
@@ -540,13 +546,13 @@ export const LiveSearchAutocomplete: React.FC<LiveSearchAutocompleteProps> = ({
               )}
 
               {/* Category: Genres */}
-              {suggestions.genres.length > 0 && (
+              {genreList.length > 0 && (
                 <div>
                   <div className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1.5 mb-1">
                     <Compass className="w-3 h-3" /> Genres
                   </div>
                   <div className="flex flex-wrap gap-1.5 px-1 py-0.5">
-                    {suggestions.genres.map((genre) => (
+                    {genreList.map((genre) => (
                       <button
                         key={genre.id}
                         onClick={() => handleSelectQuery(genre.name)}
@@ -569,7 +575,8 @@ export const LiveSearchAutocomplete: React.FC<LiveSearchAutocompleteProps> = ({
                 <ArrowRight className="w-3.5 h-3.5 text-[#E51D87]" />
               </button>
             </div>
-          )}
+            );
+          })()}
 
           {/* STATE 4: No Results State */}
           {query.trim().length >= 2 && !loading && totalCount === 0 && (

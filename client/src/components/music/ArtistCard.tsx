@@ -15,6 +15,7 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({
   isSelected = false,
   isLoading = false,
 }) => {
+  if (!artist || !artist.name) return null;
   return (
     <div
       onClick={onClick}
