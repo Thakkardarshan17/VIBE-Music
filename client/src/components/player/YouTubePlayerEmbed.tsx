@@ -155,10 +155,12 @@ const YouTubePlayerEmbedInternal: React.FC = () => {
           videoId: youtubeVideoId,
           playerVars: {
             autoplay: 1,
-            controls: 1, // User can interact with video controls
-            modestbranding: 1,
+            controls: 1, // Full standard YouTube playback controls
+            modestbranding: 0, // Show standard YouTube branding & attribution
             rel: 0,
             playsinline: 1,
+            fs: 1, // Allow fullscreen
+            cc_load_policy: 1, // Support closed captions
             origin: window.location.origin,
           },
           events: {
@@ -179,7 +181,13 @@ const YouTubePlayerEmbedInternal: React.FC = () => {
               } catch (e) {}
             },
             onError: (err: any) => {
-              console.warn('[YT Player Event Notice]:', err);
+              const code = err?.data;
+              console.warn('[YouTube IFrame Player Error Code]:', code);
+              // 100 = Video not found or marked private
+              // 101 / 150 = Embedding not allowed by content owner
+              if (code === 101 || code === 150) {
+                console.info('This video does not allow embedded playback by request of the copyright owner.');
+              }
             },
           },
         });

@@ -15,6 +15,7 @@ import historyRoutes from './routes/historyRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import searchRoutes from './routes/searchRoutes.js';
 import meRoutes from './routes/meRoutes.js';
+import youtubeRoutes from './routes/youtubeRoutes.js';
 
 const app = express();
 
@@ -75,6 +76,7 @@ app.use(['/api/history', '/history'], historyRoutes);
 app.use(['/api/admin', '/admin'], adminRoutes);
 app.use(['/api/search', '/search'], searchRoutes);
 app.use(['/api/me', '/me'], meRoutes);
+app.use(['/api/youtube', '/youtube'], youtubeRoutes);
 
 // Fallback for undefined routes
 app.use('*', (req, res) => {

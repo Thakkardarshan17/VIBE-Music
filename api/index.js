@@ -18277,17 +18277,17 @@ var require_router = __commonJS({
     var toString3 = Object.prototype.toString;
     var proto = module.exports = function(options) {
       var opts = options || {};
-      function router9(req, res, next) {
-        router9.handle(req, res, next);
+      function router10(req, res, next) {
+        router10.handle(req, res, next);
       }
-      setPrototypeOf(router9, proto);
-      router9.params = {};
-      router9._params = [];
-      router9.caseSensitive = opts.caseSensitive;
-      router9.mergeParams = opts.mergeParams;
-      router9.strict = opts.strict;
-      router9.stack = [];
-      return router9;
+      setPrototypeOf(router10, proto);
+      router10.params = {};
+      router10._params = [];
+      router10.caseSensitive = opts.caseSensitive;
+      router10.mergeParams = opts.mergeParams;
+      router10.strict = opts.strict;
+      router10.stack = [];
+      return router10;
     };
     proto.param = function param(name, fn) {
       if (typeof name === "function") {
@@ -20896,7 +20896,7 @@ var require_application = __commonJS({
   "server/node_modules/express/lib/application.js"(exports, module) {
     "use strict";
     var finalhandler = require_finalhandler();
-    var Router9 = require_router();
+    var Router10 = require_router();
     var methods = require_methods();
     var middleware = require_init();
     var query = require_query();
@@ -20961,7 +20961,7 @@ var require_application = __commonJS({
     };
     app2.lazyrouter = function lazyrouter() {
       if (!this._router) {
-        this._router = new Router9({
+        this._router = new Router10({
           caseSensitive: this.enabled("case sensitive routing"),
           strict: this.enabled("strict routing")
         });
@@ -20970,17 +20970,17 @@ var require_application = __commonJS({
       }
     };
     app2.handle = function handle(req, res, callback) {
-      var router9 = this._router;
+      var router10 = this._router;
       var done = callback || finalhandler(req, res, {
         env: this.get("env"),
         onerror: logerror.bind(this)
       });
-      if (!router9) {
+      if (!router10) {
         debug("no routes defined on app");
         done();
         return;
       }
-      router9.handle(req, res, done);
+      router10.handle(req, res, done);
     };
     app2.use = function use(fn) {
       var offset = 0;
@@ -21000,15 +21000,15 @@ var require_application = __commonJS({
         throw new TypeError("app.use() requires a middleware function");
       }
       this.lazyrouter();
-      var router9 = this._router;
+      var router10 = this._router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router9.use(path2, fn2);
+          return router10.use(path2, fn2);
         }
         debug(".use app under %s", path2);
         fn2.mountpath = path2;
         fn2.parent = this;
-        router9.use(path2, function mounted_app(req, res, next) {
+        router10.use(path2, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             setPrototypeOf(req, orig.request);
@@ -21110,7 +21110,7 @@ var require_application = __commonJS({
     };
     app2.del = deprecate.function(app2.delete, "app.del: Use app.delete instead");
     app2.render = function render(name, options, callback) {
-      var cache = this.cache;
+      var cache2 = this.cache;
       var done = callback;
       var engines = this.engines;
       var opts = options;
@@ -21129,7 +21129,7 @@ var require_application = __commonJS({
         renderOptions.cache = this.enabled("view cache");
       }
       if (renderOptions.cache) {
-        view = cache[name];
+        view = cache2[name];
       }
       if (!view) {
         var View2 = this.get("view");
@@ -21145,7 +21145,7 @@ var require_application = __commonJS({
           return done(err);
         }
         if (renderOptions.cache) {
-          cache[name] = view;
+          cache2[name] = view;
         }
       }
       tryRender(view, renderOptions, done);
@@ -22825,7 +22825,7 @@ var require_express = __commonJS({
     var mixin = require_merge_descriptors();
     var proto = require_application();
     var Route = require_route();
-    var Router9 = require_router();
+    var Router10 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -22848,7 +22848,7 @@ var require_express = __commonJS({
     exports.request = req;
     exports.response = res;
     exports.Route = Route;
-    exports.Router = Router9;
+    exports.Router = Router10;
     exports.json = bodyParser.json;
     exports.query = require_query();
     exports.raw = bodyParser.raw;
@@ -27487,7 +27487,7 @@ var require_range2 = __commonJS({
         range = range.replace(BUILDSTRIPRE, "");
         const memoOpts = (this.options.includePrerelease && FLAG_INCLUDE_PRERELEASE) | (this.options.loose && FLAG_LOOSE);
         const memoKey = memoOpts + ":" + range;
-        const cached = cache.get(memoKey);
+        const cached = cache2.get(memoKey);
         if (cached) {
           return cached;
         }
@@ -27521,7 +27521,7 @@ var require_range2 = __commonJS({
           rangeMap.delete("");
         }
         const result = [...rangeMap.values()];
-        cache.set(memoKey, result);
+        cache2.set(memoKey, result);
         return result;
       }
       intersects(range, options) {
@@ -27560,7 +27560,7 @@ var require_range2 = __commonJS({
     };
     module.exports = Range;
     var LRU = require_lrucache();
-    var cache = new LRU();
+    var cache2 = new LRU();
     var parseOptions2 = require_parse_options();
     var Comparator = require_comparator();
     var debug = require_debug2();
@@ -32692,7 +32692,7 @@ var require_follow_redirects = __commonJS({
 });
 
 // server/src/index.ts
-var import_express9 = __toESM(require_express2());
+var import_express10 = __toESM(require_express2());
 var import_cors = __toESM(require_lib3());
 
 // server/src/config/env.ts
@@ -34696,9 +34696,9 @@ var toSafeFlatObject = (thing) => {
   }
   return result;
 };
-var kindOf = /* @__PURE__ */ ((cache) => (thing) => {
+var kindOf = /* @__PURE__ */ ((cache2) => (thing) => {
   const str = toString.call(thing);
-  return cache[str] || (cache[str] = str.slice(8, -1).toLowerCase());
+  return cache2[str] || (cache2[str] = str.slice(8, -1).toLowerCase());
 })(/* @__PURE__ */ Object.create(null));
 var kindOfTest = (type) => {
   type = type.toLowerCase();
@@ -37794,8 +37794,8 @@ function setDirectAgent(options, configHttpAgent, configHttpsAgent) {
 }
 function getTunnelingAgent(agentOptions, userHttpsAgent) {
   const key = agentOptions.protocol + "//" + agentOptions.hostname + ":" + (agentOptions.port || "") + "#" + (agentOptions.auth || "");
-  const cache = userHttpsAgent ? tunnelingAgentCacheUser.get(userHttpsAgent) || tunnelingAgentCacheUser.set(userHttpsAgent, /* @__PURE__ */ new Map()).get(userHttpsAgent) : tunnelingAgentCache;
-  let agent = cache.get(key);
+  const cache2 = userHttpsAgent ? tunnelingAgentCacheUser.get(userHttpsAgent) || tunnelingAgentCacheUser.set(userHttpsAgent, /* @__PURE__ */ new Map()).get(userHttpsAgent) : tunnelingAgentCache;
+  let agent = cache2.get(key);
   if (agent) return agent;
   const merged = userHttpsAgent && userHttpsAgent.options ? { ...userHttpsAgent.options, ...agentOptions } : agentOptions;
   agent = new import_https_proxy_agent.default(merged);
@@ -37806,7 +37806,7 @@ function getTunnelingAgent(agentOptions, userHttpsAgent) {
     return callback.call(this, req, { ...originTLSOptions, ...opts });
   };
   agent[kAxiosInstalledTunnel] = true;
-  cache.set(key, agent);
+  cache2.set(key, agent);
   return agent;
 }
 var supportedProtocols = platform_default.protocols.map((protocol) => {
@@ -41593,6 +41593,366 @@ async function searchItunes(query, limit = 15) {
 }
 
 // server/src/services/youtubeService.ts
+function parseISO8601Duration(durationStr) {
+  if (!durationStr) return 0;
+  const match = durationStr.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 0;
+  const hours = parseInt(match[1] || "0", 10);
+  const minutes = parseInt(match[2] || "0", 10);
+  const seconds = parseInt(match[3] || "0", 10);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+function formatDuration(totalSeconds) {
+  if (isNaN(totalSeconds) || totalSeconds <= 0) return "0:00";
+  const hours = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor(totalSeconds % 3600 / 60);
+  const secs = Math.floor(totalSeconds % 60);
+  if (hours > 0) {
+    return `${hours}:${mins < 10 ? "0" : ""}${mins}:${secs < 10 ? "0" : ""}${secs}`;
+  }
+  return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+}
+function formatViewCount(views) {
+  if (!views || isNaN(views)) return "0 views";
+  if (views >= 1e9) {
+    return `${(views / 1e9).toFixed(1)}B views`;
+  }
+  if (views >= 1e6) {
+    return `${(views / 1e6).toFixed(1)}M views`;
+  }
+  if (views >= 1e3) {
+    return `${(views / 1e3).toFixed(1)}K views`;
+  }
+  return `${views} views`;
+}
+var cache = /* @__PURE__ */ new Map();
+var CACHE_TTL_MS = 10 * 60 * 1e3;
+function getCached(key) {
+  const entry = cache.get(key);
+  if (entry && Date.now() - entry.timestamp < CACHE_TTL_MS) {
+    return entry.data;
+  }
+  return null;
+}
+function setCache(key, data) {
+  cache.set(key, { data, timestamp: Date.now() });
+}
+var YouTubeService = class {
+  getApiKey() {
+    return ENV.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY || process.env.VITE_YOUTUBE_API_KEY || "";
+  }
+  /**
+   * Real-time music search with custom filters & nextPageToken pagination
+   */
+  async search(query, filter2 = "all", pageToken, maxResults = 25) {
+    const cleanQuery = (query || "").trim();
+    if (!cleanQuery) {
+      return { items: [], filterApplied: filter2 };
+    }
+    const apiKey = this.getApiKey();
+    let searchQuery = cleanQuery;
+    let typeParam = "video";
+    switch (filter2) {
+      case "official":
+        searchQuery = `${cleanQuery} official music video`;
+        break;
+      case "songs":
+        searchQuery = `${cleanQuery} song audio`;
+        break;
+      case "live":
+        searchQuery = `${cleanQuery} live concert performance`;
+        break;
+      case "covers":
+        searchQuery = `${cleanQuery} cover`;
+        break;
+      case "remixes":
+        searchQuery = `${cleanQuery} remix`;
+        break;
+      case "lyrics":
+        searchQuery = `${cleanQuery} lyrics lyrical video`;
+        break;
+      case "channels":
+        searchQuery = `${cleanQuery} official artist`;
+        typeParam = "channel";
+        break;
+      default:
+        searchQuery = cleanQuery;
+    }
+    const cacheKey = `yt_search_${cleanQuery.toLowerCase()}_${filter2}_${pageToken || "p0"}_${maxResults}`;
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+    if (apiKey) {
+      try {
+        const limit = Math.min(50, Math.max(1, maxResults));
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=${typeParam}&q=${encodeURIComponent(
+          searchQuery
+        )}&maxResults=${limit}&regionCode=IN&relevanceLanguage=hi${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""}&key=${apiKey}`;
+        const res = await axios_default.get(searchUrl, { timeout: 1e4 });
+        const searchData = res.data;
+        if (searchData.items && Array.isArray(searchData.items)) {
+          if (typeParam === "channel") {
+            const channelItems = searchData.items.map((item) => ({
+              id: item.id?.channelId || item.id,
+              title: item.snippet?.channelTitle || item.snippet?.title || "Artist Channel",
+              description: item.snippet?.description || "",
+              channelTitle: item.snippet?.channelTitle || "",
+              channelId: item.id?.channelId || "",
+              publishedAt: item.snippet?.publishedAt || "",
+              thumbnail: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || item.snippet?.thumbnails?.default?.url || "",
+              duration: 0,
+              durationFormatted: "Channel"
+            }));
+            const result3 = {
+              items: channelItems,
+              nextPageToken: searchData.nextPageToken,
+              prevPageToken: searchData.prevPageToken,
+              totalResults: searchData.pageInfo?.totalResults,
+              filterApplied: filter2
+            };
+            setCache(cacheKey, result3);
+            return result3;
+          }
+          const videoIds = searchData.items.map((item) => item.id?.videoId).filter(Boolean).join(",");
+          let videoDetailsMap = /* @__PURE__ */ new Map();
+          if (videoIds) {
+            try {
+              const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoIds}&key=${apiKey}`;
+              const detailsRes = await axios_default.get(detailsUrl, { timeout: 8e3 });
+              if (detailsRes.data?.items) {
+                detailsRes.data.items.forEach((item) => {
+                  videoDetailsMap.set(item.id, item);
+                });
+              }
+            } catch (detailsErr) {
+              console.warn("[YouTube Service] Batch details fetch notice:", detailsErr);
+            }
+          }
+          const items2 = searchData.items.map((item) => {
+            const vid = item.id?.videoId;
+            if (!vid) return null;
+            const details = videoDetailsMap.get(vid);
+            const snippet = details?.snippet || item.snippet || {};
+            const contentDetails = details?.contentDetails || {};
+            const statistics = details?.statistics || {};
+            const durationSeconds = parseISO8601Duration(contentDetails.duration || "");
+            const views = statistics.viewCount ? parseInt(statistics.viewCount, 10) : void 0;
+            const likes = statistics.likeCount ? parseInt(statistics.likeCount, 10) : void 0;
+            const thumbnail = snippet.thumbnails?.maxres?.url || snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
+            return {
+              id: vid,
+              title: snippet.title || "Music Video",
+              description: snippet.description || "",
+              channelTitle: snippet.channelTitle || "YouTube Artist",
+              channelId: snippet.channelId || "",
+              publishedAt: snippet.publishedAt ? snippet.publishedAt.substring(0, 10) : "",
+              thumbnail,
+              duration: durationSeconds || 240,
+              durationFormatted: formatDuration(durationSeconds || 240),
+              viewCount: views,
+              viewCountFormatted: views !== void 0 ? formatViewCount(views) : void 0,
+              likeCount: likes,
+              isLive: snippet.liveBroadcastContent === "live"
+            };
+          }).filter(Boolean);
+          const result2 = {
+            items: items2,
+            nextPageToken: searchData.nextPageToken,
+            prevPageToken: searchData.prevPageToken,
+            totalResults: searchData.pageInfo?.totalResults,
+            filterApplied: filter2
+          };
+          setCache(cacheKey, result2);
+          return result2;
+        }
+      } catch (err) {
+        console.warn("[YouTube Service] Official Data API error, falling back to Web Search:", err?.message);
+      }
+    }
+    const fallbackTracks = await searchYouTube(searchQuery, maxResults);
+    const items = fallbackTracks.map((t) => ({
+      id: t.youtubeId || t.id.replace("youtube-", ""),
+      title: t.title,
+      description: "",
+      channelTitle: t.artist,
+      channelId: "",
+      publishedAt: t.releaseDate || "2026",
+      thumbnail: t.coverUrl,
+      duration: t.duration || 240,
+      durationFormatted: formatDuration(t.duration || 240)
+    }));
+    const result = {
+      items,
+      filterApplied: filter2
+    };
+    setCache(cacheKey, result);
+    return result;
+  }
+  /**
+   * Retrieve video information via videos.list
+   */
+  async getVideoDetails(videoId) {
+    const vid = (videoId || "").trim();
+    if (!vid) return null;
+    const cacheKey = `yt_video_${vid}`;
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+    const apiKey = this.getApiKey();
+    if (apiKey) {
+      try {
+        const url2 = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${encodeURIComponent(
+          vid
+        )}&key=${apiKey}`;
+        const res = await axios_default.get(url2, { timeout: 8e3 });
+        const item = res.data?.items?.[0];
+        if (item) {
+          const snippet = item.snippet || {};
+          const contentDetails = item.contentDetails || {};
+          const statistics = item.statistics || {};
+          const durationSeconds = parseISO8601Duration(contentDetails.duration || "");
+          const views = statistics.viewCount ? parseInt(statistics.viewCount, 10) : void 0;
+          const likes = statistics.likeCount ? parseInt(statistics.likeCount, 10) : void 0;
+          const thumbnail = snippet.thumbnails?.maxres?.url || snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
+          const video = {
+            id: vid,
+            title: snippet.title || "Video",
+            description: snippet.description || "",
+            channelTitle: snippet.channelTitle || "",
+            channelId: snippet.channelId || "",
+            publishedAt: snippet.publishedAt ? snippet.publishedAt.substring(0, 10) : "",
+            thumbnail,
+            duration: durationSeconds || 240,
+            durationFormatted: formatDuration(durationSeconds || 240),
+            viewCount: views,
+            viewCountFormatted: views !== void 0 ? formatViewCount(views) : void 0,
+            likeCount: likes,
+            isLive: snippet.liveBroadcastContent === "live"
+          };
+          setCache(cacheKey, video);
+          return video;
+        }
+      } catch (e) {
+        console.warn("[YouTube Service] getVideoDetails error:", e?.message);
+      }
+    }
+    return {
+      id: vid,
+      title: "YouTube Music Video",
+      description: "Official Video stream via YouTube IFrame Player",
+      channelTitle: "YouTube Music",
+      channelId: "",
+      publishedAt: "2026",
+      thumbnail: `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`,
+      duration: 240,
+      durationFormatted: "4:00"
+    };
+  }
+  /**
+   * Retrieve trending music videos
+   */
+  async getTrending(regionCode = "IN", maxResults = 25, pageToken) {
+    const apiKey = this.getApiKey();
+    const cacheKey = `yt_trending_${regionCode}_${pageToken || "p0"}_${maxResults}`;
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+    if (apiKey) {
+      try {
+        const limit = Math.min(50, Math.max(1, maxResults));
+        const url2 = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&chart=mostPopular&videoCategoryId=10&regionCode=${encodeURIComponent(
+          regionCode
+        )}&maxResults=${limit}${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""}&key=${apiKey}`;
+        const res = await axios_default.get(url2, { timeout: 1e4 });
+        const data = res.data;
+        const items = (data.items || []).map((item) => {
+          const snippet = item.snippet || {};
+          const contentDetails = item.contentDetails || {};
+          const statistics = item.statistics || {};
+          const durationSeconds = parseISO8601Duration(contentDetails.duration || "");
+          const views = statistics.viewCount ? parseInt(statistics.viewCount, 10) : void 0;
+          const likes = statistics.likeCount ? parseInt(statistics.likeCount, 10) : void 0;
+          const thumbnail = snippet.thumbnails?.maxres?.url || snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || `https://i.ytimg.com/vi/${item.id}/hqdefault.jpg`;
+          return {
+            id: item.id,
+            title: snippet.title || "Trending Music Video",
+            description: snippet.description || "",
+            channelTitle: snippet.channelTitle || "",
+            channelId: snippet.channelId || "",
+            publishedAt: snippet.publishedAt ? snippet.publishedAt.substring(0, 10) : "",
+            thumbnail,
+            duration: durationSeconds || 240,
+            durationFormatted: formatDuration(durationSeconds || 240),
+            viewCount: views,
+            viewCountFormatted: views !== void 0 ? formatViewCount(views) : void 0,
+            likeCount: likes,
+            isLive: snippet.liveBroadcastContent === "live"
+          };
+        });
+        const result = {
+          items,
+          nextPageToken: data.nextPageToken,
+          prevPageToken: data.prevPageToken,
+          totalResults: data.pageInfo?.totalResults,
+          filterApplied: "trending"
+        };
+        setCache(cacheKey, result);
+        return result;
+      } catch (err) {
+        console.warn("[YouTube Service] getTrending error:", err?.message);
+      }
+    }
+    return await this.search("Trending Music India 2026", "all", pageToken, maxResults);
+  }
+  /**
+   * Retrieve playlist videos
+   */
+  async getPlaylistVideos(playlistId, pageToken, maxResults = 25) {
+    const pid = (playlistId || "").trim();
+    if (!pid) return { items: [], filterApplied: "playlist" };
+    const apiKey = this.getApiKey();
+    const cacheKey = `yt_playlist_${pid}_${pageToken || "p0"}_${maxResults}`;
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+    if (apiKey) {
+      try {
+        const limit = Math.min(50, Math.max(1, maxResults));
+        const url2 = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(
+          pid
+        )}&maxResults=${limit}${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""}&key=${apiKey}`;
+        const res = await axios_default.get(url2, { timeout: 1e4 });
+        const data = res.data;
+        const items = (data.items || []).map((item) => {
+          const vid = item.contentDetails?.videoId || item.snippet?.resourceId?.videoId;
+          if (!vid) return null;
+          const snippet = item.snippet || {};
+          const thumbnail = snippet.thumbnails?.maxres?.url || snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
+          return {
+            id: vid,
+            title: snippet.title || "Playlist Video",
+            description: snippet.description || "",
+            channelTitle: snippet.channelTitle || "",
+            channelId: snippet.channelId || "",
+            publishedAt: snippet.publishedAt ? snippet.publishedAt.substring(0, 10) : "",
+            thumbnail,
+            duration: 240,
+            durationFormatted: "4:00"
+          };
+        }).filter(Boolean);
+        const result = {
+          items,
+          nextPageToken: data.nextPageToken,
+          prevPageToken: data.prevPageToken,
+          totalResults: data.pageInfo?.totalResults,
+          filterApplied: "playlist"
+        };
+        setCache(cacheKey, result);
+        return result;
+      } catch (err) {
+        console.warn("[YouTube Service] getPlaylistVideos error:", err?.message);
+      }
+    }
+    return { items: [], filterApplied: "playlist" };
+  }
+};
+var youtubeService = new YouTubeService();
 async function searchYouTube(query, limit = 15) {
   if (ENV.YOUTUBE_API_KEY) {
     try {
@@ -41601,14 +41961,13 @@ async function searchYouTube(query, limit = 15) {
           part: "snippet",
           type: "video",
           videoCategoryId: "10",
-          // Category 10 is Music
           maxResults: limit,
           q: `${query} music song`,
           key: ENV.YOUTUBE_API_KEY
         },
         timeout: 8e3
       });
-      if (response.data && response.data.items && response.data.items.length > 0) {
+      if (response.data?.items?.length > 0) {
         return response.data.items.map((item) => {
           const videoId = item.id?.videoId;
           return {
@@ -41675,41 +42034,11 @@ async function searchYouTube(query, limit = 15) {
             if (results.length >= limit) break;
           }
         }
-        if (results.length > 0) {
-          return results;
-        }
+        if (results.length > 0) return results;
       } catch (jsonErr) {
-        console.warn("[YouTube Service] JSON parse fallback error:", jsonErr);
       }
     }
-    const videoMatches = [...html.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g)];
-    const titleMatches = [...html.matchAll(/"title":\{"runs":\[\{"text":"([^"]+)"\}\]/g)];
-    const regexResults = [];
-    const seenRegex = /* @__PURE__ */ new Set();
-    for (let i = 0; i < Math.min(videoMatches.length, limit * 2); i++) {
-      const vid = videoMatches[i]?.[1];
-      if (!vid || seenRegex.has(vid)) continue;
-      seenRegex.add(vid);
-      const title = titleMatches[i]?.[1] || `${query} (Official Music)`;
-      regexResults.push({
-        id: `youtube-${vid}`,
-        title: title.replace(/&amp;/g, "&").replace(/&#39;/g, "'"),
-        artist: "Official Music Artist",
-        album: "YouTube Full Song",
-        duration: 235,
-        coverUrl: `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`,
-        youtubeId: vid,
-        provider: "youtube",
-        providerName: "YouTube (Full Song)",
-        isAuthorized: true,
-        playbackType: "youtube",
-        releaseDate: "2026"
-      });
-      if (regexResults.length >= limit) break;
-    }
-    if (regexResults.length > 0) return regexResults;
-  } catch (error) {
-    console.warn(`[YouTube Service] Public search error:`, error.message);
+  } catch (err) {
   }
   return [];
 }
@@ -43477,8 +43806,97 @@ router8.delete("/search-history/:id", deleteSearchHistoryItem);
 router8.post("/listening-events", logListeningEvent);
 var meRoutes_default = router8;
 
+// server/src/routes/youtubeRoutes.ts
+var import_express9 = __toESM(require_express2());
+
+// server/src/controllers/youtubeController.ts
+var youtubeController = {
+  /**
+   * GET /api/youtube/search?q=&filter=&pageToken=&maxResults=
+   */
+  async search(req, res) {
+    try {
+      const q = req.query.q;
+      const filter2 = req.query.filter || "all";
+      const pageToken = req.query.pageToken;
+      const maxResults = req.query.maxResults ? parseInt(req.query.maxResults, 10) : 25;
+      if (!q || !q.trim()) {
+        return res.status(400).json({ error: 'Search query parameter "q" is required.' });
+      }
+      const results = await youtubeService.search(q.trim(), filter2, pageToken, maxResults);
+      return res.json(results);
+    } catch (err) {
+      console.error("[YouTube Controller] search error:", err?.message);
+      return res.status(500).json({
+        error: err?.message || "Failed to search YouTube.",
+        quotaExceeded: err?.message?.includes("quota") || err?.response?.data?.error?.code === 403
+      });
+    }
+  },
+  /**
+   * GET /api/youtube/video/:videoId
+   */
+  async getVideo(req, res) {
+    try {
+      const videoId = String(req.params.videoId || "");
+      if (!videoId) {
+        return res.status(400).json({ error: 'Parameter "videoId" is required.' });
+      }
+      const video = await youtubeService.getVideoDetails(videoId);
+      if (!video) {
+        return res.status(404).json({ error: `Video with ID ${videoId} not found.` });
+      }
+      return res.json(video);
+    } catch (err) {
+      console.error("[YouTube Controller] getVideo error:", err?.message);
+      return res.status(500).json({ error: err?.message || "Failed to get video details." });
+    }
+  },
+  /**
+   * GET /api/youtube/trending?regionCode=&pageToken=&maxResults=
+   */
+  async getTrending(req, res) {
+    try {
+      const regionCode = req.query.regionCode || "IN";
+      const pageToken = req.query.pageToken;
+      const maxResults = req.query.maxResults ? parseInt(req.query.maxResults, 10) : 25;
+      const results = await youtubeService.getTrending(regionCode, maxResults, pageToken);
+      return res.json(results);
+    } catch (err) {
+      console.error("[YouTube Controller] getTrending error:", err?.message);
+      return res.status(500).json({ error: err?.message || "Failed to get trending YouTube videos." });
+    }
+  },
+  /**
+   * GET /api/youtube/playlist/:playlistId?pageToken=&maxResults=
+   */
+  async getPlaylist(req, res) {
+    try {
+      const playlistId = String(req.params.playlistId || "");
+      const pageToken = req.query.pageToken;
+      const maxResults = req.query.maxResults ? parseInt(req.query.maxResults, 10) : 25;
+      if (!playlistId) {
+        return res.status(400).json({ error: 'Parameter "playlistId" is required.' });
+      }
+      const results = await youtubeService.getPlaylistVideos(playlistId, pageToken, maxResults);
+      return res.json(results);
+    } catch (err) {
+      console.error("[YouTube Controller] getPlaylist error:", err?.message);
+      return res.status(500).json({ error: err?.message || "Failed to get playlist videos." });
+    }
+  }
+};
+
+// server/src/routes/youtubeRoutes.ts
+var router9 = (0, import_express9.Router)();
+router9.get("/search", youtubeController.search);
+router9.get("/trending", youtubeController.getTrending);
+router9.get("/video/:videoId", youtubeController.getVideo);
+router9.get("/playlist/:playlistId", youtubeController.getPlaylist);
+var youtubeRoutes_default = router9;
+
 // server/src/index.ts
-var app = (0, import_express9.default)();
+var app = (0, import_express10.default)();
 var dbReady = false;
 app.use(async (req, res, next) => {
   if (!dbReady && process.env.VERCEL) {
@@ -43503,8 +43921,8 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "x-test-suite"]
   })
 );
-app.use(import_express9.default.json({ limit: "10mb" }));
-app.use(import_express9.default.urlencoded({ extended: true, limit: "10mb" }));
+app.use(import_express10.default.json({ limit: "10mb" }));
+app.use(import_express10.default.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/api/", apiLimiter);
 app.get("/api/health", async (req, res) => {
   const dbHealth = await db.checkHealth();
@@ -43524,6 +43942,7 @@ app.use(["/api/history", "/history"], historyRoutes_default);
 app.use(["/api/admin", "/admin"], adminRoutes_default);
 app.use(["/api/search", "/search"], searchRoutes_default);
 app.use(["/api/me", "/me"], meRoutes_default);
+app.use(["/api/youtube", "/youtube"], youtubeRoutes_default);
 app.use("*", (req, res) => {
   res.status(404).json({ error: `Route ${req.originalUrl} not found on VIBE MUSIC server.` });
 });
