@@ -1,4 +1,4 @@
-export type MusicProviderType = 'jamendo' | 'youtube' | 'spotify' | 'itunes';
+export type MusicProviderType = 'jamendo' | 'youtube' | 'spotify' | 'itunes' | 'audius';
 
 export type PlaybackType = 'audio' | 'youtube' | 'preview' | 'external';
 
@@ -18,6 +18,7 @@ export interface Track {
   playbackType: PlaybackType;
   popularity?: number;
   genre?: string;
+  mood?: string;
   releaseDate?: string;
 }
 
@@ -78,6 +79,7 @@ export interface Artist {
   imageUrl: string;
   verified?: boolean;
   monthlyListeners?: number;
+  bio?: string;
 }
 
 export interface Album {

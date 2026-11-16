@@ -110,7 +110,14 @@ export const SongCard: React.FC<SongCardProps> = ({ track, queueContext, onAddTo
         <h4 className={`font-semibold text-sm truncate leading-tight ${isCurrent ? 'text-purple-400' : 'text-white'}`}>
           {track.title}
         </h4>
-        <p className="text-xs text-purple-300/70 truncate mt-1">{track.artist}</p>
+        <div className="flex items-center justify-between gap-2 mt-1">
+          <p className="text-xs text-[#B7A6C8] truncate flex-1">{track.artist}</p>
+          {track.releaseDate && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-950/70 border border-[#352044] text-purple-300 font-mono flex-shrink-0">
+              {track.releaseDate.length > 7 ? track.releaseDate.substring(0, 7) : track.releaseDate}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

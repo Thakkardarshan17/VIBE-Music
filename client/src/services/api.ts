@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Track, Playlist, User, UserProfile, UserSettings, Artist, Album, AdminDashboardData } from '../types/music.js';
 import { localMusicStorage } from './localMusicStorage.js';
+import { audiusApi } from './audiusApi.js';
 
 const isLocalhost =
   typeof window !== 'undefined' &&
@@ -286,30 +287,44 @@ export const searchApi = {
       };
     }
 
-    try {
-      const res = await apiClient.get<LiveSuggestionsResult>('/search/suggestions', {
-        params: { q: query },
-      });
-      if (res.data && res.data.suggestions && typeof res.data.total === 'number' && res.data.total > 0) {
-        return res.data;
-      }
-    } catch {}
+    // Parallel live search across Audius official API and iTunes catalog
+    const [audiusResults, itunesResults, audiusArtists] = await Promise.allSettled([
+      audiusApi.searchTracks(q, 10),
+      fetchLiveMusicFromItunes(q, 10),
+      audiusApi.searchArtists(q, 6),
+    ]);
 
-    // Live search suggestions directly via iTunes
-    const liveTracks = await fetchLiveMusicFromItunes(query, 12);
-    if (liveTracks.length > 0) {
+    const audiusTracks: Track[] = audiusResults.status === 'fulfilled' ? audiusResults.value : [];
+    const itunesTracks: Track[] = itunesResults.status === 'fulfilled' ? itunesResults.value : [];
+    const foundArtists: Artist[] = audiusArtists.status === 'fulfilled' ? audiusArtists.value : [];
+
+    // Merge and deduplicate tracks
+    const trackMap = new Map<string, Track>();
+    [...audiusTracks, ...itunesTracks].forEach((t) => {
+      const key = `${t.title.toLowerCase()}_${t.artist.toLowerCase()}`;
+      if (!trackMap.has(key)) {
+        trackMap.set(key, t);
+      }
+    });
+
+    const combinedTracks = Array.from(trackMap.values());
+
+    if (combinedTracks.length > 0 || foundArtists.length > 0) {
       const artistMap = new Map<string, Artist>();
       const albumMap = new Map<string, Album>();
 
-      liveTracks.forEach((t) => {
-        if (!artistMap.has(t.artist)) {
-          artistMap.set(t.artist, {
+      foundArtists.forEach((a) => artistMap.set(a.name.toLowerCase(), a));
+
+      combinedTracks.forEach((t) => {
+        const lowerArtist = t.artist.toLowerCase();
+        if (!artistMap.has(lowerArtist)) {
+          artistMap.set(lowerArtist, {
             id: `art-${t.artist.replace(/\s+/g, '-').toLowerCase()}`,
             name: t.artist,
             genre: t.genre || 'Music',
             imageUrl: t.coverUrl,
             verified: true,
-            monthlyListeners: 22000000,
+            monthlyListeners: 24000000,
           });
         }
         if (t.album && t.album !== 'Single' && !albumMap.has(t.album)) {
@@ -327,21 +342,23 @@ export const searchApi = {
       return {
         query,
         suggestions: {
-          artists: Array.from(artistMap.values()).slice(0, 4),
-          songs: liveTracks.slice(0, 6),
-          albums: Array.from(albumMap.values()).slice(0, 3),
+          artists: Array.from(artistMap.values()).slice(0, 5),
+          songs: combinedTracks.slice(0, 8),
+          albums: Array.from(albumMap.values()).slice(0, 4),
           playlists: [],
           genres: [
             { id: 'bolly', name: 'Bollywood', description: 'Hindi Cinema' },
             { id: 'punj', name: 'Punjabi', description: 'Punjabi Pop & Hip Hop' },
             { id: 'guj', name: 'Gujarati', description: 'Folk & Garba' },
+            { id: 'edm', name: 'Electronic / EDM', description: 'Dance & Beats' },
+            { id: 'lofi', name: 'Lo-Fi Chill', description: 'Relaxing Beats' },
           ].filter((g) => g.name.toLowerCase().includes(q)),
         },
-        total: liveTracks.length,
+        total: combinedTracks.length + artistMap.size,
       };
     }
 
-    // Default static fallback filter
+    // Default static fallback filter if network is completely offline
     const matchedSongs = DEFAULT_TRACKS.filter(
       (t) => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
     );
@@ -371,35 +388,50 @@ export const searchApi = {
   async searchAll(query: string, type: string = 'all'): Promise<SearchAllResult> {
     const q = (query || '').toLowerCase().trim();
     if (!q) {
+      const defaultTrending = await audiusApi.getTrendingTracks(20);
       return {
         query: '',
         type,
-        total: DEFAULT_TRACKS.length,
-        songs: DEFAULT_TRACKS,
+        total: defaultTrending.length || DEFAULT_TRACKS.length,
+        songs: defaultTrending.length > 0 ? defaultTrending : DEFAULT_TRACKS,
         artists: DEFAULT_ARTISTS,
         albums: DEFAULT_ALBUMS,
         playlists: [],
       };
     }
 
-    try {
-      const res = await apiClient.get<SearchAllResult>('/search', {
-        params: { q: query, type },
-      });
-      if (res.data && Array.isArray(res.data.songs) && res.data.songs.length > 0) {
-        return res.data;
-      }
-    } catch {}
+    // Query Audius + iTunes in parallel
+    const [audiusResults, itunesResults, audiusArtists] = await Promise.allSettled([
+      audiusApi.searchTracks(q, 25),
+      fetchLiveMusicFromItunes(q, 25),
+      audiusApi.searchArtists(q, 10),
+    ]);
 
-    // Live music search across millions of songs in real time via iTunes
-    const liveTracks = await fetchLiveMusicFromItunes(query, 30);
-    if (liveTracks.length > 0) {
+    const audiusTracks: Track[] = audiusResults.status === 'fulfilled' ? audiusResults.value : [];
+    const itunesTracks: Track[] = itunesResults.status === 'fulfilled' ? itunesResults.value : [];
+    const liveArtists: Artist[] = audiusArtists.status === 'fulfilled' ? audiusArtists.value : [];
+
+    // Deduplicate songs
+    const trackMap = new Map<string, Track>();
+    [...audiusTracks, ...itunesTracks].forEach((t) => {
+      const key = `${t.title.toLowerCase()}_${t.artist.toLowerCase()}`;
+      if (!trackMap.has(key)) {
+        trackMap.set(key, t);
+      }
+    });
+
+    const liveTracks = Array.from(trackMap.values());
+
+    if (liveTracks.length > 0 || liveArtists.length > 0) {
       const artistMap = new Map<string, Artist>();
       const albumMap = new Map<string, Album>();
 
+      liveArtists.forEach((a) => artistMap.set(a.name.toLowerCase(), a));
+
       liveTracks.forEach((t) => {
-        if (!artistMap.has(t.artist)) {
-          artistMap.set(t.artist, {
+        const lowerArtist = t.artist.toLowerCase();
+        if (!artistMap.has(lowerArtist)) {
+          artistMap.set(lowerArtist, {
             id: `art-${t.artist.replace(/\s+/g, '-').toLowerCase()}`,
             name: t.artist,
             genre: t.genre || 'Music',
@@ -428,11 +460,11 @@ export const searchApi = {
         artists: Array.from(artistMap.values()),
         albums: Array.from(albumMap.values()),
         playlists: [],
-        trendingFallback: DEFAULT_TRACKS,
+        trendingFallback: liveTracks.slice(0, 6),
       };
     }
 
-    // Secondary fallback to default tracks
+    // Secondary fallback
     const matchedSongs = DEFAULT_TRACKS.filter(
       (t) => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
     );
@@ -498,44 +530,52 @@ export const searchApi = {
 
 // Music Endpoints
 export const musicApi = {
-  async search(query: string, provider = 'all', limit = 20) {
-    try {
-      const res = await apiClient.get<any>('/music/search', {
-        params: { q: query, provider, limit },
-      });
-      if (res.data && Array.isArray(res.data.tracks) && res.data.tracks.length > 0) return res.data;
-    } catch {}
-
-    const liveTracks = await fetchLiveMusicFromItunes(query, limit);
-    if (liveTracks.length > 0) {
+  async search(query: string, provider = 'all', limit = 24) {
+    const q = (query || '').trim();
+    if (!q) {
       return {
-        query,
+        query: '',
         provider: provider || 'all',
-        total: liveTracks.length,
-        providersQueried: ['itunes'],
-        tracks: liveTracks,
+        total: 0,
+        providersQueried: ['audius', 'itunes'],
+        tracks: [],
       };
     }
 
-    const filtered = DEFAULT_TRACKS.filter((t) =>
-      t.title.toLowerCase().includes(query.toLowerCase()) ||
-      t.artist.toLowerCase().includes(query.toLowerCase())
-    );
+    const [audiusResults, itunesResults] = await Promise.allSettled([
+      audiusApi.searchTracks(q, limit),
+      fetchLiveMusicFromItunes(q, limit),
+    ]);
+
+    const audiusTracks: Track[] = audiusResults.status === 'fulfilled' ? audiusResults.value : [];
+    const itunesTracks: Track[] = itunesResults.status === 'fulfilled' ? itunesResults.value : [];
+
+    const trackMap = new Map<string, Track>();
+    [...audiusTracks, ...itunesTracks].forEach((t) => {
+      const key = `${t.title.toLowerCase()}_${t.artist.toLowerCase()}`;
+      if (!trackMap.has(key)) {
+        trackMap.set(key, t);
+      }
+    });
+
+    const tracks = Array.from(trackMap.values());
     return {
-      query,
+      query: q,
       provider: provider || 'all',
-      total: filtered.length,
-      providersQueried: ['itunes', 'jamendo'],
-      tracks: filtered.length > 0 ? filtered : DEFAULT_TRACKS,
+      total: tracks.length,
+      providersQueried: ['audius', 'itunes'],
+      tracks: tracks.length > 0 ? tracks : DEFAULT_TRACKS,
     };
   },
-  async getLatest() {
+
+  async getLatest(): Promise<Track[]> {
     try {
-      const res = await apiClient.get<any>('/music/latest');
-      if (res.data && Array.isArray(res.data.tracks)) return res.data.tracks;
+      const audiusUnderground = await audiusApi.getUndergroundTracks(24);
+      if (audiusUnderground.length > 0) return audiusUnderground;
     } catch {}
     return DEFAULT_TRACKS;
   },
+
   async resolveFullTrack(title: string, artist: string) {
     try {
       const res = await apiClient.get<any>('/music/resolve-full', {
@@ -545,41 +585,66 @@ export const musicApi = {
     } catch {}
     return { youtubeId: 'BddP6PYo2gs', duration: 240, coverUrl: '' };
   },
+
   async getTrending(): Promise<Track[]> {
     try {
-      const res = await apiClient.get<any>('/music/trending');
-      if (res.data && Array.isArray(res.data.tracks)) return res.data.tracks;
+      const liveTrending = await audiusApi.getTrendingTracks(24);
+      if (liveTrending.length > 0) return liveTrending;
     } catch {}
     return DEFAULT_TRACKS;
   },
+
   async getCharts() {
     try {
-      const res = await apiClient.get<any>('/music/charts');
-      if (res.data && Array.isArray(res.data.charts)) return res.data.charts;
+      const trending = await audiusApi.getTrendingTracks(24);
+      const underground = await audiusApi.getUndergroundTracks(24);
+      return [
+        { category: 'Global Trending Beats', tracks: trending.slice(0, 12) },
+        { category: 'Underground Hot Discoveries', tracks: underground.slice(0, 12) },
+      ];
     } catch {}
     return [
       { category: 'Top 50 Bollywood', tracks: DEFAULT_TRACKS },
-      { category: 'Punjabi Hits', tracks: DEFAULT_TRACKS },
+      { category: 'Global Hits', tracks: DEFAULT_TRACKS },
     ];
   },
+
   async getNewReleases(): Promise<Track[]> {
     try {
-      const res = await apiClient.get<any>('/music/new-releases');
-      if (res.data && Array.isArray(res.data.tracks)) return res.data.tracks;
+      const liveReleases = await audiusApi.getLatestReleases(24);
+      if (liveReleases.length > 0) return liveReleases;
     } catch {}
     return DEFAULT_TRACKS;
   },
+
   async getArtists(): Promise<Artist[]> {
     try {
-      const res = await apiClient.get<any>('/music/artists');
-      if (res.data && Array.isArray(res.data.artists)) return res.data.artists;
+      const audiusArtists = await audiusApi.searchArtists('dj', 12);
+      if (audiusArtists.length > 0) {
+        // Merge with iconic artists
+        const set = new Set(audiusArtists.map((a) => a.name.toLowerCase()));
+        const extra = DEFAULT_ARTISTS.filter((a) => !set.has(a.name.toLowerCase()));
+        return [...audiusArtists, ...extra].slice(0, 18);
+      }
     } catch {}
     return DEFAULT_ARTISTS;
   },
+
   async getArtistDetails(name: string) {
     try {
-      const res = await apiClient.get<any>(`/music/artists/${encodeURIComponent(name)}`);
-      if (res.data?.artist) return res.data.artist;
+      const [artists, tracks] = await Promise.allSettled([
+        audiusApi.searchArtists(name, 1),
+        audiusApi.searchTracks(name, 12),
+      ]);
+      const foundArtist = artists.status === 'fulfilled' ? artists.value[0] : null;
+      const foundTracks = tracks.status === 'fulfilled' ? tracks.value : [];
+      if (foundArtist || foundTracks.length > 0) {
+        return {
+          name: foundArtist ? foundArtist.name : name,
+          imageUrl: foundArtist?.imageUrl || foundTracks[0]?.coverUrl || DEFAULT_ARTISTS[0].imageUrl,
+          tracks: foundTracks.length > 0 ? foundTracks : DEFAULT_TRACKS,
+        };
+      }
     } catch {}
     const artist = DEFAULT_ARTISTS.find((a) => a.name.toLowerCase() === name.toLowerCase()) || DEFAULT_ARTISTS[0];
     return {
@@ -588,10 +653,11 @@ export const musicApi = {
       tracks: DEFAULT_TRACKS,
     };
   },
+
   async getAlbums(): Promise<Album[]> {
     try {
-      const res = await apiClient.get<any>('/music/albums');
-      if (res.data && Array.isArray(res.data.albums)) return res.data.albums;
+      const playlists = await audiusApi.getTrendingPlaylists(12);
+      if (playlists.length > 0) return playlists;
     } catch {}
     return DEFAULT_ALBUMS;
   },
