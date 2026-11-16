@@ -240,17 +240,108 @@ export const DEFAULT_TRACKS: Track[] = [
   },
 ];
 
+// Live Online Music Search Fallback via Apple iTunes (100% free, CORS-open, universal catalog)
+async function fetchLiveMusicFromItunes(query: string, limit: number = 30): Promise<Track[]> {
+  try {
+    const cleanQ = (query || '').trim();
+    if (!cleanQ) return [];
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(cleanQ)}&media=music&entity=song&limit=${limit}`;
+    const res = await axios.get(url, { timeout: 8000 });
+    if (res.data && Array.isArray(res.data.results) && res.data.results.length > 0) {
+      return res.data.results.map((item: any): Track => {
+        const cover = item.artworkUrl100
+          ? item.artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg')
+          : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
+        return {
+          id: `itunes-${item.trackId}`,
+          title: item.trackName || 'Unknown Title',
+          artist: item.artistName || 'Unknown Artist',
+          album: item.collectionName || 'Single',
+          duration: Math.round((item.trackTimeMillis || 180000) / 1000),
+          coverUrl: cover,
+          audioUrl: item.previewUrl,
+          provider: 'itunes',
+          providerName: 'Apple Music Master',
+          isAuthorized: true,
+          playbackType: 'audio',
+          releaseDate: item.releaseDate ? item.releaseDate.substring(0, 10) : '2026',
+          genre: item.primaryGenreName || 'Music',
+        };
+      });
+    }
+  } catch (e) {
+    console.warn('[VIBE Music Search] Live iTunes fallback warning:', e);
+  }
+  return [];
+}
+
 export const searchApi = {
   async getSuggestions(query: string): Promise<LiveSuggestionsResult> {
+    const q = (query || '').toLowerCase().trim();
+    if (!q) {
+      return {
+        query: '',
+        suggestions: { artists: [], songs: [], albums: [], playlists: [], genres: [] },
+        total: 0,
+      };
+    }
+
     try {
       const res = await apiClient.get<LiveSuggestionsResult>('/search/suggestions', {
         params: { q: query },
       });
-      if (res.data && res.data.suggestions && typeof res.data.total === 'number') {
+      if (res.data && res.data.suggestions && typeof res.data.total === 'number' && res.data.total > 0) {
         return res.data;
       }
     } catch {}
-    const q = (query || '').toLowerCase().trim();
+
+    // Live search suggestions directly via iTunes
+    const liveTracks = await fetchLiveMusicFromItunes(query, 12);
+    if (liveTracks.length > 0) {
+      const artistMap = new Map<string, Artist>();
+      const albumMap = new Map<string, Album>();
+
+      liveTracks.forEach((t) => {
+        if (!artistMap.has(t.artist)) {
+          artistMap.set(t.artist, {
+            id: `art-${t.artist.replace(/\s+/g, '-').toLowerCase()}`,
+            name: t.artist,
+            genre: t.genre || 'Music',
+            imageUrl: t.coverUrl,
+            verified: true,
+            monthlyListeners: 22000000,
+          });
+        }
+        if (t.album && t.album !== 'Single' && !albumMap.has(t.album)) {
+          albumMap.set(t.album, {
+            id: `alb-${t.album.replace(/\s+/g, '-').toLowerCase()}`,
+            title: t.album,
+            artist: t.artist,
+            coverUrl: t.coverUrl,
+            releaseDate: t.releaseDate || '2026',
+            totalTracks: 10,
+          });
+        }
+      });
+
+      return {
+        query,
+        suggestions: {
+          artists: Array.from(artistMap.values()).slice(0, 4),
+          songs: liveTracks.slice(0, 6),
+          albums: Array.from(albumMap.values()).slice(0, 3),
+          playlists: [],
+          genres: [
+            { id: 'bolly', name: 'Bollywood', description: 'Hindi Cinema' },
+            { id: 'punj', name: 'Punjabi', description: 'Punjabi Pop & Hip Hop' },
+            { id: 'guj', name: 'Gujarati', description: 'Folk & Garba' },
+          ].filter((g) => g.name.toLowerCase().includes(q)),
+        },
+        total: liveTracks.length,
+      };
+    }
+
+    // Default static fallback filter
     const matchedSongs = DEFAULT_TRACKS.filter(
       (t) => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
     );
@@ -276,16 +367,72 @@ export const searchApi = {
       total: matchedSongs.length + matchedArtists.length + matchedAlbums.length,
     };
   },
+
   async searchAll(query: string, type: string = 'all'): Promise<SearchAllResult> {
+    const q = (query || '').toLowerCase().trim();
+    if (!q) {
+      return {
+        query: '',
+        type,
+        total: DEFAULT_TRACKS.length,
+        songs: DEFAULT_TRACKS,
+        artists: DEFAULT_ARTISTS,
+        albums: DEFAULT_ALBUMS,
+        playlists: [],
+      };
+    }
+
     try {
       const res = await apiClient.get<SearchAllResult>('/search', {
         params: { q: query, type },
       });
-      if (res.data && Array.isArray(res.data.songs)) {
+      if (res.data && Array.isArray(res.data.songs) && res.data.songs.length > 0) {
         return res.data;
       }
     } catch {}
-    const q = (query || '').toLowerCase().trim();
+
+    // Live music search across millions of songs in real time via iTunes
+    const liveTracks = await fetchLiveMusicFromItunes(query, 30);
+    if (liveTracks.length > 0) {
+      const artistMap = new Map<string, Artist>();
+      const albumMap = new Map<string, Album>();
+
+      liveTracks.forEach((t) => {
+        if (!artistMap.has(t.artist)) {
+          artistMap.set(t.artist, {
+            id: `art-${t.artist.replace(/\s+/g, '-').toLowerCase()}`,
+            name: t.artist,
+            genre: t.genre || 'Music',
+            imageUrl: t.coverUrl,
+            verified: true,
+            monthlyListeners: 25000000,
+          });
+        }
+        if (t.album && t.album !== 'Single' && !albumMap.has(t.album)) {
+          albumMap.set(t.album, {
+            id: `alb-${t.album.replace(/\s+/g, '-').toLowerCase()}`,
+            title: t.album,
+            artist: t.artist,
+            coverUrl: t.coverUrl,
+            releaseDate: t.releaseDate || '2026',
+            totalTracks: 12,
+          });
+        }
+      });
+
+      return {
+        query,
+        type,
+        total: liveTracks.length,
+        songs: liveTracks,
+        artists: Array.from(artistMap.values()),
+        albums: Array.from(albumMap.values()),
+        playlists: [],
+        trendingFallback: DEFAULT_TRACKS,
+      };
+    }
+
+    // Secondary fallback to default tracks
     const matchedSongs = DEFAULT_TRACKS.filter(
       (t) => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
     );
@@ -356,8 +503,20 @@ export const musicApi = {
       const res = await apiClient.get<any>('/music/search', {
         params: { q: query, provider, limit },
       });
-      if (res.data && Array.isArray(res.data.tracks)) return res.data;
+      if (res.data && Array.isArray(res.data.tracks) && res.data.tracks.length > 0) return res.data;
     } catch {}
+
+    const liveTracks = await fetchLiveMusicFromItunes(query, limit);
+    if (liveTracks.length > 0) {
+      return {
+        query,
+        provider: provider || 'all',
+        total: liveTracks.length,
+        providersQueried: ['itunes'],
+        tracks: liveTracks,
+      };
+    }
+
     const filtered = DEFAULT_TRACKS.filter((t) =>
       t.title.toLowerCase().includes(query.toLowerCase()) ||
       t.artist.toLowerCase().includes(query.toLowerCase())
