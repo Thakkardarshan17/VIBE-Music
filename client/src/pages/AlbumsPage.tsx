@@ -24,9 +24,10 @@ export const AlbumsPage: React.FC = () => {
 
   useEffect(() => {
     musicApi.getAlbums().then((list) => {
-      setAlbums(list);
+      const validList = Array.isArray(list) ? list : [];
+      setAlbums(validList);
       if (requestedTitle) {
-        const found = list.find((a) => a.title.toLowerCase() === requestedTitle.toLowerCase());
+        const found = validList.find((a) => a.title.toLowerCase() === requestedTitle.toLowerCase());
         if (found) handleSelectAlbum(found);
       }
     }).catch(console.warn);

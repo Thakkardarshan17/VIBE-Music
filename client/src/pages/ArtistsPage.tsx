@@ -47,7 +47,7 @@ export const ArtistsPage: React.FC = () => {
       .getArtists()
       .then((data) => {
         if (!isMounted) return;
-        setArtists(data);
+        setArtists(Array.isArray(data) && data.length > 0 ? data : []);
         setLoadingArtists(false);
 
         // If URL has artist name, select that artist; otherwise default to first artist

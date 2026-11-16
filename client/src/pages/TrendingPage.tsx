@@ -55,7 +55,7 @@ export const TrendingPage: React.FC = () => {
         <div className="glass-panel rounded-3xl p-4 md:p-6 border border-purple-500/20 shadow-2xl">
           <SongTableHeader />
           <div className="divide-y divide-[#352044]/30">
-            {tracks.map((track, idx) => (
+            {(tracks || []).map((track, idx) => (
               <SongRow
                 key={track.id}
                 track={track}

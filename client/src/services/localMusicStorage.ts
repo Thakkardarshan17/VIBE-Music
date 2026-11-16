@@ -58,7 +58,7 @@ export const localMusicStorage = {
     return liked.some((t) => t.id === songId);
   },
 
-  async toggleLikeSong(track: Track, isAuthenticated: boolean): Promise<boolean> {
+  async toggleLikeSong(track: Track, isAuthenticated: boolean = false): Promise<boolean> {
     if (!track || !track.id) return false;
 
     const currentLiked = this.getLikedSongs();

@@ -40,7 +40,7 @@ export const ExplorePage: React.FC = () => {
     setLoading(true);
     try {
       const res = await musicApi.search(genre.query, 'all', 12);
-      setTracks(res.tracks);
+      setTracks(Array.isArray(res?.tracks) ? res.tracks : []);
     } catch (e) {
       console.warn(e);
     } finally {

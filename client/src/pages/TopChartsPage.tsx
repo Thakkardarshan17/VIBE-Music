@@ -44,7 +44,7 @@ export const TopChartsPage: React.FC = () => {
           ))}
         </div>
       ) : (
-        charts.map((chart, cIdx) => (
+        (charts || []).map((chart, cIdx) => (
           <section key={cIdx} className="glass-panel rounded-3xl p-6 border border-purple-500/20 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">

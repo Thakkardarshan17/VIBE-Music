@@ -12,7 +12,7 @@ import {
   Clock,
   Compass,
 } from 'lucide-react';
-import { musicApi, historyApi } from '../services/api.js';
+import { musicApi, historyApi, DEFAULT_TRACKS, DEFAULT_ARTISTS, DEFAULT_ALBUMS } from '../services/api.js';
 import { localMusicStorage } from '../services/localMusicStorage.js';
 import { Track, Artist, Album } from '../types/music.js';
 import { SongCard } from '../components/music/SongCard.js';
@@ -54,10 +54,10 @@ export const HomePage: React.FC = () => {
           musicApi.getArtists(),
           musicApi.getAlbums(),
         ]);
-        setTrending(trendData);
-        setNewReleases(releaseData);
-        setArtists(artistData);
-        setAlbums(albumData);
+        setTrending(Array.isArray(trendData) && trendData.length > 0 ? trendData : DEFAULT_TRACKS);
+        setNewReleases(Array.isArray(releaseData) && releaseData.length > 0 ? releaseData : DEFAULT_TRACKS);
+        setArtists(Array.isArray(artistData) && artistData.length > 0 ? artistData : DEFAULT_ARTISTS);
+        setAlbums(Array.isArray(albumData) && albumData.length > 0 ? albumData : DEFAULT_ALBUMS);
 
         if (isAuthenticated) {
           historyApi
@@ -168,7 +168,7 @@ export const HomePage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-            {trending.slice(0, 6).map((track) => (
+            {(trending || []).slice(0, 6).map((track) => (
               <SongCard
                 key={track.id}
                 track={track}
@@ -224,7 +224,7 @@ export const HomePage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-          {artists.slice(0, 6).map((artist) => (
+          {(artists || []).slice(0, 6).map((artist) => (
             <ArtistCard
               key={artist.id}
               artist={artist}
@@ -250,7 +250,7 @@ export const HomePage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-          {newReleases.slice(0, 6).map((track) => (
+          {(newReleases || []).slice(0, 6).map((track) => (
             <SongCard
               key={track.id}
               track={track}
@@ -277,7 +277,7 @@ export const HomePage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-          {albums.slice(0, 6).map((album) => (
+          {(albums || []).slice(0, 6).map((album) => (
             <AlbumCard
               key={album.id}
               album={album}
@@ -288,7 +288,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 7. Recently Played (if user has history) */}
-      {recentTracks.length > 0 && (
+      {(recentTracks || []).length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
@@ -304,7 +304,7 @@ export const HomePage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-            {recentTracks.slice(0, 6).map((track) => (
+            {(recentTracks || []).slice(0, 6).map((track) => (
               <SongCard
                 key={track.id}
                 track={track}
