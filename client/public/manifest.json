@@ -1,0 +1,32 @@
+{
+  "name": "VIBE MUSIC - Feel the Music. Live the Vibe.",
+  "short_name": "VIBE MUSIC",
+  "description": "Premium Studio-Grade Music Streaming Web Application. Feel the Music. Live the Vibe.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#090510",
+  "theme_color": "#090510",
+  "categories": ["music", "entertainment", "audio"],
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/vibe-music-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

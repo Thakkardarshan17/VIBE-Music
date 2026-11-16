@@ -32,6 +32,7 @@ import { PlaylistsPage } from './pages/PlaylistsPage.js';
 import { LikedSongsPage } from './pages/LikedSongsPage.js';
 import { HistoryPage } from './pages/HistoryPage.js';
 import { MusicPlayerPage } from './pages/MusicPlayerPage.js';
+import { MusicVideosPage } from './pages/MusicVideosPage.js';
 import { LoginPage } from './pages/LoginPage.js';
 import { SignUpPage } from './pages/SignUpPage.js';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage.js';
@@ -214,6 +215,14 @@ const AppContent: React.FC = () => {
                   element={
                     <ProtectedRoute>
                       <MusicPlayerPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/videos"
+                  element={
+                    <ProtectedRoute>
+                      <MusicVideosPage />
                     </ProtectedRoute>
                   }
                 />

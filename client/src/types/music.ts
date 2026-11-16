@@ -1,4 +1,14 @@
-export type MusicProviderType = 'jamendo' | 'youtube' | 'spotify' | 'itunes' | 'audius';
+export type MusicProviderType =
+  | 'jamendo'
+  | 'youtube'
+  | 'spotify'
+  | 'itunes'
+  | 'audius'
+  | 'deezer'
+  | 'soundcloud'
+  | 'applemusic'
+  | 'audiomack'
+  | 'tidal';
 
 export type PlaybackType = 'audio' | 'youtube' | 'preview' | 'external';
 

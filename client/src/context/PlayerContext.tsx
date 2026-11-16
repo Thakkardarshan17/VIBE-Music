@@ -140,7 +140,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => window.removeEventListener('vibe_logout_event', handleLogoutEvent);
   }, []);
 
-  // HTML5 Audio Event Listeners for Jamendo
+  // HTML5 Audio Event Listeners with Error Recovery and Network Resilience
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -152,7 +152,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     const onLoadedMetadata = () => {
-      if (activePlaybackMode === 'audio' && audio.duration && audio.duration > 30) {
+      if (activePlaybackMode === 'audio' && audio.duration && audio.duration > 5) {
         setDuration(audio.duration);
       }
     };
@@ -161,16 +161,155 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       handleTrackEnded();
     };
 
+    // Error handling & recovery without restarting from scratch
+    const onError = (e: Event) => {
+      console.warn('[VIBE Audio] Stream error encountered:', e);
+      // Attempt smooth recovery if track has audioUrl and playback was active
+      if (currentTrack?.audioUrl && isPlaying) {
+        const savedTime = audio.currentTime;
+        console.log('[VIBE Audio] Attempting stream recovery at position:', savedTime);
+        setTimeout(() => {
+          if (audioRef.current && currentTrack) {
+            audioRef.current.src = currentTrack.audioUrl!;
+            audioRef.current.currentTime = savedTime;
+            audioRef.current.play().catch((err) => console.warn('[VIBE Audio] Recovery resume failed:', err));
+          }
+        }, 1500);
+      }
+    };
+
+    const onWaiting = () => {
+      // Stream buffering in background - do not reset or pause state
+    };
+
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('error', onError);
+    audio.addEventListener('waiting', onWaiting);
 
     return () => {
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
       audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('error', onError);
+      audio.removeEventListener('waiting', onWaiting);
     };
-  }, [activePlaybackMode, currentTrack, queueIndex, queue, repeatMode]);
+  }, [activePlaybackMode, currentTrack, queueIndex, queue, repeatMode, isPlaying]);
+
+  // Network Online/Offline recovery - Resume playback when connection returns
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('[VIBE Audio] Network online - checking playback recovery');
+      if (isPlaying) {
+        if (activePlaybackMode === 'audio' && audioRef.current && audioRef.current.paused) {
+          audioRef.current.play().catch(console.warn);
+        } else if (activePlaybackMode === 'youtube' && ytControllerRef.current) {
+          ytControllerRef.current.play();
+        }
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [isPlaying, activePlaybackMode]);
+
+  // Media Session API Integration for Lock Screen, Notifications & Wearables
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
+
+    if (currentTrack) {
+      const artworkUrl = currentTrack.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
+      const sizes = [96, 128, 192, 256, 384, 512];
+      const artwork = sizes.map((s) => ({
+        src: artworkUrl,
+        sizes: `${s}x${s}`,
+        type: 'image/jpeg',
+      }));
+
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: currentTrack.title || 'VIBE MUSIC',
+          artist: currentTrack.artist || 'Unknown Artist',
+          album: currentTrack.album || 'VIBE Streaming',
+          artwork,
+        });
+      } catch (err) {
+        console.warn('[MediaSession] Metadata update warning:', err);
+      }
+    } else {
+      navigator.mediaSession.metadata = null;
+    }
+  }, [currentTrack]);
+
+  // Media Session Playback State & Action Handlers
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
+
+    try {
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    } catch {}
+
+    const actionHandlers: [MediaSessionAction, MediaSessionActionHandler | null][] = [
+      ['play', () => resume()],
+      ['pause', () => pause()],
+      ['previoustrack', () => prevTrack()],
+      ['nexttrack', () => nextTrack()],
+      ['seekbackward', (details) => {
+        const offset = details.seekOffset || 10;
+        seek(Math.max(0, currentTime - offset));
+      }],
+      ['seekforward', (details) => {
+        const offset = details.seekOffset || 10;
+        seek(Math.min(duration, currentTime + offset));
+      }],
+      ['seekto', (details) => {
+        if (details.seekTime !== undefined && details.seekTime !== null) {
+          seek(details.seekTime);
+        }
+      }],
+      ['stop', () => pause()],
+    ];
+
+    actionHandlers.forEach(([action, handler]) => {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch (err) {
+        // Some actions may not be supported in all browsers
+      }
+    });
+
+    return () => {
+      actionHandlers.forEach(([action]) => {
+        try {
+          navigator.mediaSession.setActionHandler(action, null);
+        } catch {}
+      });
+    };
+  }, [isPlaying, currentTime, duration, queueIndex, queue]);
+
+  // Media Session Position State Sync
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      !('mediaSession' in navigator) ||
+      !navigator.mediaSession.setPositionState ||
+      !duration ||
+      duration <= 0
+    ) {
+      return;
+    }
+
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: Math.max(1, duration),
+        playbackRate: 1,
+        position: Math.max(0, Math.min(currentTime, duration)),
+      });
+    } catch (e) {
+      // Ignore transient position update errors
+    }
+  }, [currentTime, duration]);
 
   // Volume sync
   useEffect(() => {
@@ -524,8 +663,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setYouTubeCurrentTime,
       }}
     >
-      {/* Hidden Global HTML5 Audio Element for MP3s */}
-      <audio ref={audioRef} crossOrigin="anonymous" preload="auto" />
+      {/* Persistent Global HTML5 Audio Element for Background Playback */}
+      <audio
+        ref={audioRef}
+        id="vibe-persistent-audio"
+        crossOrigin="anonymous"
+        preload="auto"
+        playsInline
+      />
       {children}
     </PlayerContext.Provider>
   );

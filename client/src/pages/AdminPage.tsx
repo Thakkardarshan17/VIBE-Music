@@ -1,8 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, ListMusic, Music, Database, Cpu, Activity, CheckCircle, XCircle, Power, RefreshCw } from 'lucide-react';
+import {
+  Shield,
+  Users,
+  ListMusic,
+  Music,
+  Database,
+  Cpu,
+  Activity,
+  CheckCircle,
+  XCircle,
+  Power,
+  RefreshCw,
+  Server,
+  Key,
+  Radio,
+  Play,
+  Check,
+  AlertTriangle,
+  Info,
+} from 'lucide-react';
 import { adminApi } from '../services/api.js';
-import { AdminDashboardData, User as UserType } from '../types/music.js';
+import { AdminDashboardData, User as UserType, MusicProviderType } from '../types/music.js';
 import { useAuth } from '../context/AuthContext.js';
+import { providerManager } from '../services/providers/providerManager.js';
+import { ProviderDiagnostic } from '../services/providers/types.js';
 
 export const AdminPage: React.FC = () => {
   const { isAdmin, isAuthenticated } = useAuth();
@@ -10,6 +31,24 @@ export const AdminPage: React.FC = () => {
   const [users, setUsers] = useState<UserType[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [updatingProvider, setUpdatingProvider] = useState<string | null>(null);
+
+  // Live Provider Architecture Diagnostics State
+  const [providerDiagnostics, setProviderDiagnostics] = useState<ProviderDiagnostic[]>(() =>
+    providerManager.getAllDiagnostics()
+  );
+  const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, { success: boolean; latencyMs: number; message: string }>>({});
+
+  const handleTestProvider = async (providerId: MusicProviderType) => {
+    setTestingProvider(providerId);
+    try {
+      const res = await providerManager.testProvider(providerId);
+      setTestResults((prev) => ({ ...prev, [providerId]: res }));
+      setProviderDiagnostics(providerManager.getAllDiagnostics());
+    } finally {
+      setTestingProvider(null);
+    }
+  };
 
   const fetchAdminData = async () => {
     try {
@@ -179,9 +218,145 @@ export const AdminPage: React.FC = () => {
         </div>
       </div>
 
-      {/* API Provider Status & Controls */}
+      {/* API Provider Architecture Diagnostics & Live Connectivity Testing */}
+      <section className="glass-panel rounded-3xl p-6 border border-[#352044] shadow-xl space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-950/60 border border-purple-500/30 text-purple-300 text-xs font-semibold mb-1">
+              <Server className="w-3.5 h-3.5 text-purple-400" /> Multi-Source Provider Adapters
+            </div>
+            <h3 className="text-xl font-bold text-white">API Provider Diagnostics & Status</h3>
+            <p className="text-xs text-[#B7A6C8]">
+              Verify real connectivity, search availability, and audio/video playback capabilities.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setProviderDiagnostics(providerManager.getAllDiagnostics())}
+            className="px-3.5 py-1.5 rounded-xl bg-[#170D24] border border-[#352044] hover:border-[#A020F0] text-xs font-semibold text-white flex items-center gap-1.5 transition-colors self-start"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh Status
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {providerDiagnostics.map((diag) => {
+            const testResult = testResults[diag.id];
+            const isTesting = testingProvider === diag.id;
+
+            return (
+              <div
+                key={diag.id}
+                className="p-5 rounded-2xl bg-[#170D24]/80 border border-[#352044] hover:border-[#A020F0]/50 transition-all space-y-3"
+              >
+                {/* Header: Name, Category, Status Badge */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-white text-base flex items-center gap-2">
+                      {diag.name}
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#090510] text-[#B7A6C8] uppercase">
+                        {diag.category}
+                      </span>
+                    </h4>
+                  </div>
+
+                  <span
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                      diag.status === 'connected'
+                        ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/40'
+                        : diag.status === 'available'
+                        ? 'bg-blue-950/80 text-blue-300 border border-blue-500/40'
+                        : diag.status === 'pending_credentials'
+                        ? 'bg-amber-950/80 text-amber-300 border border-amber-500/40'
+                        : 'bg-red-950/80 text-red-400 border border-red-500/40'
+                    }`}
+                  >
+                    {diag.status.replace('_', ' ')}
+                  </span>
+                </div>
+
+                {/* Capabilities Badges */}
+                <div className="flex flex-wrap gap-2 text-[11px] font-medium">
+                  <span className={`px-2 py-0.5 rounded-lg border ${
+                    diag.searchAvailable
+                      ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
+                      : 'bg-slate-900 border-slate-700 text-slate-500'
+                  }`}>
+                    {diag.searchAvailable ? '✓ Search Active' : '✕ Search Unavailable'}
+                  </span>
+
+                  <span className={`px-2 py-0.5 rounded-lg border ${
+                    diag.playbackAvailable
+                      ? 'bg-purple-950/40 border-purple-500/30 text-purple-300'
+                      : 'bg-slate-900 border-slate-700 text-slate-500'
+                  }`}>
+                    Playback: {diag.playbackType}
+                  </span>
+
+                  {diag.requiresCredentials && (
+                    <span className="px-2 py-0.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-300 flex items-center gap-1 font-mono text-[10px]">
+                      <Key className="w-3 h-3" /> {diag.credentialsEnvVar || 'API Key Required'}
+                    </span>
+                  )}
+                </div>
+
+                {/* Notes & Description */}
+                <p className="text-xs text-[#B7A6C8] leading-relaxed">
+                  {diag.notes}
+                </p>
+
+                {/* Catalog Coverage */}
+                {diag.catalogCoverage && diag.catalogCoverage.length > 0 && (
+                  <div className="flex flex-wrap gap-1 text-[10px] text-[#B7A6C8]/80">
+                    <span className="font-semibold text-white">Coverage:</span>
+                    {diag.catalogCoverage.map((cat) => (
+                      <span key={cat} className="px-1.5 py-0.2 rounded bg-[#090510] border border-[#352044]">
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Setup Guide if Pending */}
+                {diag.setupGuide && !diag.isConfigured && (
+                  <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/20 text-[11px] text-amber-200/90 flex items-start gap-2">
+                    <Info className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <span><strong>Setup:</strong> {diag.setupGuide}</span>
+                  </div>
+                )}
+
+                {/* Live Test Results Display */}
+                {testResult && (
+                  <div className={`p-2.5 rounded-xl text-xs font-mono flex items-center justify-between ${
+                    testResult.success
+                      ? 'bg-emerald-950/50 border border-emerald-500/30 text-emerald-300'
+                      : 'bg-red-950/50 border border-red-500/30 text-red-300'
+                  }`}>
+                    <span>{testResult.message}</span>
+                    <span className="font-bold">{testResult.latencyMs}ms</span>
+                  </div>
+                )}
+
+                {/* Action: Test Connection Button */}
+                <div className="pt-2 flex justify-end">
+                  <button
+                    onClick={() => handleTestProvider(diag.id)}
+                    disabled={isTesting}
+                    className="px-3.5 py-1.5 rounded-xl bg-[#090510] hover:bg-[#201133] border border-[#352044] hover:border-[#E51D87] text-white text-xs font-semibold transition-all flex items-center gap-1.5 disabled:opacity-50 min-h-[36px]"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-[#E51D87] ${isTesting ? 'animate-spin' : ''}`} />
+                    <span>{isTesting ? 'Testing Real API...' : 'Test Connection'}</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Backend API Providers Integration */}
       <section className="glass-panel rounded-3xl p-6 border border-purple-500/20 shadow-xl">
-        <h3 className="text-xl font-bold text-white mb-2">Music API Providers Integration</h3>
+        <h3 className="text-xl font-bold text-white mb-2">Backend Gateway Status</h3>
         <p className="text-xs text-purple-300/80 mb-6">
           Real-time status of configured external music search & audio playback APIs.
         </p>

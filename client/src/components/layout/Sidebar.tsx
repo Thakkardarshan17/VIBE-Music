@@ -18,6 +18,7 @@ import {
   Radio,
   Headphones,
   Activity,
+  Film,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.js';
 import { playlistApi } from '../../services/api.js';
@@ -67,6 +68,9 @@ export const Sidebar: React.FC = () => {
           </NavLink>
           <NavLink to="/player" className={navItemClass}>
             <Headphones className="w-4 h-4 text-pink-400" /> Music Studio
+          </NavLink>
+          <NavLink to="/videos" className={navItemClass}>
+            <Film className="w-4 h-4 text-red-400" /> Music Videos
           </NavLink>
           <NavLink to="/trending" className={navItemClass}>
             <Flame className="w-4 h-4 text-amber-400" /> {t('trending')}

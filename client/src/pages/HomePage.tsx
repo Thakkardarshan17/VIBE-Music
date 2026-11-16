@@ -17,9 +17,12 @@ import {
   Plus,
   RefreshCw,
   Filter,
+  Film,
 } from 'lucide-react';
 import { musicApi, historyApi, DEFAULT_TRACKS, DEFAULT_ARTISTS, DEFAULT_ALBUMS } from '../services/api.js';
 import { audiusApi } from '../services/audiusApi.js';
+import { itunesProvider } from '../services/providers/itunesProvider.js';
+import { youtubeProvider } from '../services/providers/youtubeProvider.js';
 import { localMusicStorage } from '../services/localMusicStorage.js';
 import { Track, Artist, Album } from '../types/music.js';
 import { SongCard } from '../components/music/SongCard.js';
@@ -33,22 +36,22 @@ import { useAuth } from '../context/AuthContext.js';
 type DiscoveryFilter = 'all' | 'latest' | 'trending' | 'popular' | 'electronic' | 'chill';
 
 export const HomePage: React.FC = () => {
-  // 8 Core Music Sections State
+  // 8 Specified Music Sections State
   const [latestReleases, setLatestReleases] = useState<Track[]>([]);
-  const [newSongs, setNewSongs] = useState<Track[]>([]);
+  const [newHindiSongs, setNewHindiSongs] = useState<Track[]>([]);
+  const [newPunjabiSongs, setNewPunjabiSongs] = useState<Track[]>([]);
+  const [newGujaratiSongs, setNewGujaratiSongs] = useState<Track[]>([]);
   const [trendingSongs, setTrendingSongs] = useState<Track[]>([]);
-  const [popularTracks, setPopularTracks] = useState<Track[]>([]);
-  const [recommendedTracks, setRecommendedTracks] = useState<Track[]>([]);
+  const [latestVideos, setLatestVideos] = useState<Track[]>([]);
+  const [popularArtists, setPopularArtists] = useState<Artist[]>([]);
   const [recentTracks, setRecentTracks] = useState<Track[]>(() => localMusicStorage.getRecentTracks());
-  const [albums, setAlbums] = useState<Album[]>([]);
-  const [artists, setArtists] = useState<Artist[]>([]);
 
   const [activeFilter, setActiveFilter] = useState<DiscoveryFilter>('all');
   const [visibleCount, setVisibleCount] = useState<number>(6);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedTrackForModal, setSelectedTrackForModal] = useState<Track | null>(null);
 
-  const { playTrack } = usePlayer();
+  const { playTrack, setIsVideoVisible } = usePlayer();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -61,7 +64,7 @@ export const HomePage: React.FC = () => {
     return () => window.removeEventListener('vibe_recent_updated', handleRecent);
   }, []);
 
-  // Fetch real data from Audius API & catalog
+  // Fetch real data from all providers in parallel
   useEffect(() => {
     let isMounted = true;
 
@@ -71,14 +74,18 @@ export const HomePage: React.FC = () => {
         const [
           liveTrending,
           liveReleases,
-          liveUnderground,
-          livePlaylists,
+          liveHindi,
+          livePunjabi,
+          liveGujarati,
+          liveVideos,
           liveArtists,
         ] = await Promise.allSettled([
           audiusApi.getTrendingTracks(24),
           audiusApi.getLatestReleases(24),
-          audiusApi.getUndergroundTracks(24),
-          audiusApi.getTrendingPlaylists(12),
+          itunesProvider.search('Latest Hindi Bollywood 2026', 12),
+          itunesProvider.search('Punjabi Hits 2026', 12),
+          itunesProvider.search('Gujarati Folk 2026', 12),
+          youtubeProvider.getTrendingMusicVideos(6),
           audiusApi.searchArtists('music', 12),
         ]);
 
@@ -92,13 +99,21 @@ export const HomePage: React.FC = () => {
           ? liveReleases.value
           : trendList;
 
-        const undergroundList = liveUnderground.status === 'fulfilled' && liveUnderground.value.length > 0
-          ? liveUnderground.value
-          : trendList.slice().reverse();
+        const hindiList = liveHindi.status === 'fulfilled' && liveHindi.value.tracks.length > 0
+          ? liveHindi.value.tracks
+          : [];
 
-        const playlistList = livePlaylists.status === 'fulfilled' && livePlaylists.value.length > 0
-          ? livePlaylists.value
-          : DEFAULT_ALBUMS;
+        const punjabiList = livePunjabi.status === 'fulfilled' && livePunjabi.value.tracks.length > 0
+          ? livePunjabi.value.tracks
+          : [];
+
+        const gujaratiList = liveGujarati.status === 'fulfilled' && liveGujarati.value.tracks.length > 0
+          ? liveGujarati.value.tracks
+          : [];
+
+        const videoList = liveVideos.status === 'fulfilled' && liveVideos.value.length > 0
+          ? liveVideos.value
+          : [];
 
         const artistList = liveArtists.status === 'fulfilled' && liveArtists.value.length > 0
           ? liveArtists.value
@@ -106,11 +121,11 @@ export const HomePage: React.FC = () => {
 
         setTrendingSongs(trendList);
         setLatestReleases(releaseList);
-        setNewSongs(undergroundList);
-        setPopularTracks(trendList.slice(0, 12));
-        setRecommendedTracks(undergroundList.slice(6, 18).concat(trendList.slice(6, 12)));
-        setAlbums(playlistList);
-        setArtists(artistList);
+        setNewHindiSongs(hindiList);
+        setNewPunjabiSongs(punjabiList);
+        setNewGujaratiSongs(gujaratiList);
+        setLatestVideos(videoList);
+        setPopularArtists(artistList);
 
         if (isAuthenticated) {
           historyApi
@@ -153,7 +168,6 @@ export const HomePage: React.FC = () => {
     { name: 'Lo-Fi Chill & Focus', color: 'from-purple-800 to-indigo-600', query: 'Chill' },
   ];
 
-  // Filter items based on active quick filter
   const filterTracks = (tracks: Track[]) => {
     if (activeFilter === 'electronic') {
       return tracks.filter((t) => (t.genre || '').toLowerCase().includes('electronic') || (t.genre || '').toLowerCase().includes('dance'));
@@ -171,7 +185,7 @@ export const HomePage: React.FC = () => {
         <div className="relative z-10 max-w-xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#170D24] border border-[#352044] text-xs font-semibold mb-4">
             <Sparkles className="w-3.5 h-3.5 text-[#E51D87]" />
-            <span className="text-[#B7A6C8]">Real API Catalog • Audius Protocol</span>
+            <span className="text-[#B7A6C8]">Multi-Provider Music Engine</span>
           </div>
           <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight mb-3">
             {heroTrack ? heroTrack.title : 'Feel the Pure Music Rhythm'}
@@ -179,7 +193,7 @@ export const HomePage: React.FC = () => {
           <p className="text-sm sm:text-base text-[#B7A6C8] mb-6 line-clamp-2">
             {heroTrack
               ? `Live release by ${heroTrack.artist}. Stream full studio quality audio directly on VIBE.`
-              : 'Discover and stream real releases from the decentralized Audius music protocol.'}
+              : 'Discover and stream real releases from Audius, Apple Music, and YouTube.'}
           </p>
 
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">
@@ -190,10 +204,10 @@ export const HomePage: React.FC = () => {
               <Play className="w-4 h-4 fill-current" /> Play Spotlight
             </button>
             <button
-              onClick={() => navigate('/explore')}
-              className="px-6 py-3 rounded-full bg-[#090510]/80 border border-[#352044] text-white font-semibold text-xs sm:text-sm hover:border-[#A020F0] transition-all min-h-[44px]"
+              onClick={() => navigate('/videos')}
+              className="px-6 py-3 rounded-full bg-[#090510]/80 border border-[#352044] text-white font-semibold text-xs sm:text-sm hover:border-[#A020F0] transition-all min-h-[44px] flex items-center gap-2"
             >
-              Explore Genres
+              <Film className="w-4 h-4 text-red-400" /> Watch Videos
             </button>
           </div>
         </div>
@@ -237,13 +251,13 @@ export const HomePage: React.FC = () => {
         ))}
       </div>
 
-      {/* Section 1: Latest Releases */}
+      {/* 1. Latest Releases */}
       <section>
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
             <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-pink-400" />
             <div>
-              <h3 className="text-xl md:text-2xl font-bold text-white">1. Latest Releases</h3>
+              <h3 className="text-xl md:text-2xl font-bold text-white">Latest Releases</h3>
               <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Freshly minted official releases with verified release dates</p>
             </div>
           </div>
@@ -275,51 +289,117 @@ export const HomePage: React.FC = () => {
         )}
       </section>
 
-      {/* Section 2: New Songs */}
-      <section>
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2.5">
-            <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400" />
-            <div>
-              <h3 className="text-xl md:text-2xl font-bold text-white">2. New Songs</h3>
-              <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Brand new underground sensations and original releases</p>
+      {/* 2. New Hindi Songs */}
+      {newHindiSongs.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2.5">
+              <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-[#E51D87]" />
+              <div>
+                <h3 className="text-xl md:text-2xl font-bold text-white">New Hindi Songs</h3>
+                <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Latest Bollywood & Hindi releases from Apple Music catalog</p>
+              </div>
             </div>
+            <button
+              onClick={() => navigate('/search?q=Hindi+Latest+Hits')}
+              className="text-xs md:text-sm font-semibold text-[#B7A6C8] hover:text-white flex items-center gap-1 transition-colors"
+            >
+              Explore <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            onClick={() => navigate('/new-releases')}
-            className="text-xs md:text-sm font-semibold text-[#B7A6C8] hover:text-white flex items-center gap-1 transition-colors"
-          >
-            Explore <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-          {filterTracks(newSongs).slice(0, visibleCount).map((track) => (
-            <SongCard
-              key={track.id}
-              track={track}
-              queueContext={newSongs}
-              onAddToPlaylist={(t) => setSelectedTrackForModal(t)}
-            />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+            {newHindiSongs.slice(0, visibleCount).map((track) => (
+              <SongCard
+                key={track.id}
+                track={track}
+                queueContext={newHindiSongs}
+                onAddToPlaylist={(t) => setSelectedTrackForModal(t)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* Section 3: Trending Songs */}
+      {/* 3. New Punjabi Songs */}
+      {newPunjabiSongs.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2.5">
+              <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
+              <div>
+                <h3 className="text-xl md:text-2xl font-bold text-white">New Punjabi Songs</h3>
+                <p className="text-[11px] sm:text-xs text-[#B7A6C8]">High-energy Punjabi hits from top artists</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/search?q=Punjabi+Hits')}
+              className="text-xs md:text-sm font-semibold text-[#B7A6C8] hover:text-white flex items-center gap-1 transition-colors"
+            >
+              Explore <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+            {newPunjabiSongs.slice(0, visibleCount).map((track) => (
+              <SongCard
+                key={track.id}
+                track={track}
+                queueContext={newPunjabiSongs}
+                onAddToPlaylist={(t) => setSelectedTrackForModal(t)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 4. New Gujarati Songs */}
+      {newGujaratiSongs.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2.5">
+              <Radio className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400" />
+              <div>
+                <h3 className="text-xl md:text-2xl font-bold text-white">New Gujarati Songs</h3>
+                <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Folk, Garba, and modern Gujarati hits</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/search?q=Gujarati+Folk')}
+              className="text-xs md:text-sm font-semibold text-[#B7A6C8] hover:text-white flex items-center gap-1 transition-colors"
+            >
+              Explore <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+            {newGujaratiSongs.slice(0, visibleCount).map((track) => (
+              <SongCard
+                key={track.id}
+                track={track}
+                queueContext={newGujaratiSongs}
+                onAddToPlaylist={(t) => setSelectedTrackForModal(t)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 5. Trending Music */}
       <section>
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
-            <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-[#E51D87]" />
+            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-[#A020F0]" />
             <div>
-              <h3 className="text-xl md:text-2xl font-bold text-white">3. Trending Songs</h3>
-              <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Top trending beats right now across the globe</p>
+              <h3 className="text-xl md:text-2xl font-bold text-white">Trending Music</h3>
+              <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Top trending tracks streamed globally right now</p>
             </div>
           </div>
           <button
             onClick={() => navigate('/trending')}
             className="text-xs md:text-sm font-semibold text-[#B7A6C8] hover:text-white flex items-center gap-1 transition-colors"
           >
-            Leaderboard <ChevronRight className="w-4 h-4" />
+            Charts <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
@@ -335,15 +415,93 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Section 4: Recently Added / Played */}
+      {/* 6. Latest Music Videos */}
+      {latestVideos.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2.5">
+              <Film className="w-5 h-5 sm:w-6 sm:h-6 text-red-400" />
+              <div>
+                <h3 className="text-xl md:text-2xl font-bold text-white">Latest Music Videos</h3>
+                <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Official HD music videos and live sessions</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/videos')}
+              className="text-xs md:text-sm font-semibold text-[#B7A6C8] hover:text-white flex items-center gap-1 transition-colors"
+            >
+              Video Theater <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+            {latestVideos.map((video) => (
+              <div
+                key={video.id}
+                onClick={() => {
+                  setIsVideoVisible(true);
+                  playTrack(video);
+                }}
+                className="group glass-card rounded-2xl overflow-hidden border border-[#352044] hover:border-red-500 transition-all cursor-pointer"
+              >
+                <div className="relative aspect-video bg-black overflow-hidden">
+                  <img
+                    src={video.coverUrl}
+                    alt={video.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Play className="w-8 h-8 text-white fill-current" />
+                  </div>
+                </div>
+                <div className="p-3">
+                  <h5 className="font-bold text-xs text-white truncate">{video.title}</h5>
+                  <p className="text-[11px] text-[#B7A6C8] truncate mt-0.5">{video.artist}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 7. Popular Artists */}
+      <section>
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2.5">
+            <Users className="w-5 h-5 sm:w-6 sm:h-6 text-[#A020F0]" />
+            <div>
+              <h3 className="text-xl md:text-2xl font-bold text-white">Popular Artists</h3>
+              <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Follow creators and artists making waves</p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/artists')}
+            className="text-xs md:text-sm font-semibold text-[#B7A6C8] hover:text-white flex items-center gap-1 transition-colors"
+          >
+            View All <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+          {(popularArtists || []).slice(0, 6).map((artist) => (
+            <ArtistCard
+              key={artist.id}
+              artist={artist}
+              onClick={() => navigate(`/artists?name=${encodeURIComponent(artist.name)}`)}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* 8. Recently Added / Played */}
       {recentTracks.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
               <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" />
               <div>
-                <h3 className="text-xl md:text-2xl font-bold text-white">4. Recently Added</h3>
-                <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Your recently added and played tracks</p>
+                <h3 className="text-xl md:text-2xl font-bold text-white">Recently Added</h3>
+                <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Your recently listened tracks</p>
               </div>
             </div>
             <button
@@ -367,124 +525,6 @@ export const HomePage: React.FC = () => {
         </section>
       )}
 
-      {/* Section 5: Popular Tracks */}
-      <section>
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2.5">
-            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
-            <div>
-              <h3 className="text-xl md:text-2xl font-bold text-white">5. Popular Tracks</h3>
-              <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Most streamed crowd favorites</p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/top-charts')}
-            className="text-xs md:text-sm font-semibold text-[#B7A6C8] hover:text-white flex items-center gap-1 transition-colors"
-          >
-            Charts <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-          {popularTracks.slice(0, 6).map((track) => (
-            <SongCard
-              key={track.id}
-              track={track}
-              queueContext={popularTracks}
-              onAddToPlaylist={(t) => setSelectedTrackForModal(t)}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Section 6: Recommended Music */}
-      <section>
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2.5">
-            <Headphones className="w-5 h-5 sm:w-6 sm:h-6 text-[#A020F0]" />
-            <div>
-              <h3 className="text-xl md:text-2xl font-bold text-white">6. Recommended Music</h3>
-              <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Curated based on your listening taste</p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/explore')}
-            className="text-xs md:text-sm font-semibold text-[#B7A6C8] hover:text-white flex items-center gap-1 transition-colors"
-          >
-            Explore <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-          {recommendedTracks.slice(0, 6).map((track) => (
-            <SongCard
-              key={track.id}
-              track={track}
-              queueContext={recommendedTracks}
-              onAddToPlaylist={(t) => setSelectedTrackForModal(t)}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Section 7: Latest Albums / Playlists */}
-      <section>
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2.5">
-            <Disc className="w-5 h-5 sm:w-6 sm:h-6 text-[#E51D87]" />
-            <div>
-              <h3 className="text-xl md:text-2xl font-bold text-white">7. Latest Albums / Playlists</h3>
-              <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Trending full albums and curator playlists</p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/albums')}
-            className="text-xs md:text-sm font-semibold text-[#B7A6C8] hover:text-white flex items-center gap-1 transition-colors"
-          >
-            All Playlists <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-          {(albums || []).slice(0, 6).map((album) => (
-            <AlbumCard
-              key={album.id}
-              album={album}
-              onClick={() => navigate(`/albums?title=${encodeURIComponent(album.title)}`)}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Section 8: Discover New Artists */}
-      <section>
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2.5">
-            <Users className="w-5 h-5 sm:w-6 sm:h-6 text-[#A020F0]" />
-            <div>
-              <h3 className="text-xl md:text-2xl font-bold text-white">8. Discover New Artists</h3>
-              <p className="text-[11px] sm:text-xs text-[#B7A6C8]">Follow creators and artists making waves</p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/artists')}
-            className="text-xs md:text-sm font-semibold text-[#B7A6C8] hover:text-white flex items-center gap-1 transition-colors"
-          >
-            View All <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-          {(artists || []).slice(0, 6).map((artist) => (
-            <ArtistCard
-              key={artist.id}
-              artist={artist}
-              onClick={() => navigate(`/artists?name=${encodeURIComponent(artist.name)}`)}
-            />
-          ))}
-        </div>
-      </section>
-
       {/* Popular Genres & Moods */}
       <section>
         <div className="flex items-center justify-between mb-5">
@@ -506,19 +546,6 @@ export const HomePage: React.FC = () => {
           ))}
         </div>
       </section>
-
-      {/* Load More Pagination */}
-      {visibleCount < latestReleases.length && (
-        <div className="flex justify-center pt-4">
-          <button
-            onClick={() => setVisibleCount((prev) => prev + 6)}
-            className="px-6 py-3 rounded-full bg-[#170D24] hover:bg-[#221338] border border-[#352044] hover:border-[#A020F0] text-white text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shadow-lg"
-          >
-            <RefreshCw className="w-4 h-4 text-[#E51D87]" />
-            <span>Load More Tracks</span>
-          </button>
-        </div>
-      )}
 
       {/* Playlist modal */}
       <AddToPlaylistModal
