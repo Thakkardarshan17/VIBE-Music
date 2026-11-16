@@ -43516,14 +43516,14 @@ app.get("/api/health", async (req, res) => {
     database: dbHealth
   });
 });
-app.use("/api/auth", authRoutes_default);
-app.use("/api/music", musicRoutes_default);
-app.use("/api/playlists", playlistRoutes_default);
-app.use("/api/favorites", favoriteRoutes_default);
-app.use("/api/history", historyRoutes_default);
-app.use("/api/admin", adminRoutes_default);
-app.use("/api/search", searchRoutes_default);
-app.use("/api/me", meRoutes_default);
+app.use(["/api/auth", "/auth"], authRoutes_default);
+app.use(["/api/music", "/music"], musicRoutes_default);
+app.use(["/api/playlists", "/playlists"], playlistRoutes_default);
+app.use(["/api/favorites", "/favorites"], favoriteRoutes_default);
+app.use(["/api/history", "/history"], historyRoutes_default);
+app.use(["/api/admin", "/admin"], adminRoutes_default);
+app.use(["/api/search", "/search"], searchRoutes_default);
+app.use(["/api/me", "/me"], meRoutes_default);
 app.use("*", (req, res) => {
   res.status(404).json({ error: `Route ${req.originalUrl} not found on VIBE MUSIC server.` });
 });

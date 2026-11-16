@@ -66,15 +66,15 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
-// Mount API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/music', musicRoutes);
-app.use('/api/playlists', playlistRoutes);
-app.use('/api/favorites', favoriteRoutes);
-app.use('/api/history', historyRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/search', searchRoutes);
-app.use('/api/me', meRoutes);
+// Mount API routes with dual prefixes for universal compatibility (Vercel serverless + local standalone)
+app.use(['/api/auth', '/auth'], authRoutes);
+app.use(['/api/music', '/music'], musicRoutes);
+app.use(['/api/playlists', '/playlists'], playlistRoutes);
+app.use(['/api/favorites', '/favorites'], favoriteRoutes);
+app.use(['/api/history', '/history'], historyRoutes);
+app.use(['/api/admin', '/admin'], adminRoutes);
+app.use(['/api/search', '/search'], searchRoutes);
+app.use(['/api/me', '/me'], meRoutes);
 
 // Fallback for undefined routes
 app.use('*', (req, res) => {
